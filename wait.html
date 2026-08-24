@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>KNIVES OUT — FX Reel</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #060405; --ink2: #0e0809; --ink3: #160d10; --ink4: #1f1216;
+  --seam: #352428; --seam2: #4a2f38;
+  --blade: #c41e3a; --blade2: #8b1529;
+  --blood: #dc2626; --blood2: #991b1b; --blood3: #450a0a;
+  --cream: #ede4e0; --cream2: #b8a4a0; --cream3: #6b5558;
+  --alive: #2d6a3e; --alive2: #1a4a28; --ghost: #5c3a6a; --ghost2: #d8a8e8;
+  --gold: #caa24a;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: var(--ink); }
+body {
+  font-family: 'Courier Prime', monospace; color: var(--cream2);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============ STAGE ============ */
+#stage { position: fixed; inset: 0; overflow: hidden; background: var(--ink); }
+
+.ambient-vignette {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 38%, rgba(139,21,41,0.16) 0%, transparent 55%),
+              radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.65) 0%, transparent 60%);
+  animation: vignettePulse 6s ease-in-out infinite;
+}
+@keyframes vignettePulse { 0%,100% { opacity: .85; } 50% { opacity: 1; } }
+.ambient-grain {
+  position: absolute; inset: -2px; z-index: 0; pointer-events: none; opacity: .5;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(255,255,255,0.014) 28px, rgba(255,255,255,0.014) 29px),
+    repeating-linear-gradient(90deg, transparent, transparent 28px, rgba(255,255,255,0.008) 28px, rgba(255,255,255,0.008) 29px);
+}
+.ambient-fade-black {
+  position: absolute; inset: 0; z-index: 6; background: var(--ink);
+  opacity: 0; pointer-events: none; transition: opacity .35s ease;
+}
+.ambient-fade-black.show { opacity: 1; }
+
+canvas.fx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+
+.scene {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 24px; opacity: 0; pointer-events: none;
+  transition: opacity .4s ease;
+}
+.scene.show { opacity: 1; }
+
+.reel-tag {
+  position: fixed; top: 16px; left: 18px; z-index: 8;
+  font-size: 9px; letter-spacing: 3px; color: var(--cream3); text-transform: uppercase;
+  opacity: .5;
+}
+.reel-tag .dot { display:inline-block; width:5px; height:5px; border-radius:50%; background: var(--blade); margin-right:7px; box-shadow: 0 0 6px var(--blade); animation: dotPulse 1.4s ease-in-out infinite; vertical-align: 1px; }
+@keyframes dotPulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+.loop-bar { position: fixed; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.05); z-index: 8; }
+.loop-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--blade), var(--ghost2), var(--gold), var(--blade)); background-size: 300% 100%; }
+
+/* ============ INTRO ============ */
+#scene-intro .intro-mark { font-size: clamp(20px, 5vw, 30px); color: var(--blade); opacity: 0; margin-bottom: 10px; }
+#scene-intro.show .intro-mark { animation: kaIconPop .5s cubic-bezier(.3,1.6,.4,1) .05s both; }
+.intro-logo {
+  font-family: 'Playfair Display', serif; font-weight: 900; font-style: italic;
+  font-size: clamp(40px, 11vw, 88px); color: var(--cream); letter-spacing: 3px;
+  line-height: 1; overflow: hidden; white-space: nowrap;
+}
+.intro-logo span { color: var(--blade); }
+.intro-logo b { display: inline-block; clip-path: inset(0 100% 0 0); }
+#scene-intro.show .intro-logo b { animation: introReveal .95s cubic-bezier(.65,0,.15,1) .15s forwards; }
+@keyframes introReveal { to { clip-path: inset(0 0 0 0); } }
+.intro-sub {
+  margin-top: 14px; font-size: 10px; letter-spacing: 5px; text-transform: uppercase;
+  color: var(--cream3); opacity: 0;
+}
+#scene-intro.show .intro-sub { animation: kaFadeUp .6s ease .85s both; }
+@keyframes kaFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.intro-rule { width: 70px; height: 1px; background: var(--seam2); margin: 18px auto 0; opacity: 0; }
+#scene-intro.show .intro-rule { animation: kaFadeUp .6s ease 1.05s both; }
+
+/* ============ FX OVERLAY (kill / immunity / ghost) ============ */
+.ka-flash { position: absolute; inset: 0; background: var(--blade); opacity: 0; z-index: 1; }
+.ka-flash.go { animation: kaFlashPulse .45s ease-out; }
+#scene-fx.ghost-tint .ka-flash { background: var(--ghost); }
+@keyframes kaFlashPulse { 0% { opacity: .8; } 100% { opacity: 0; } }
+
+.ka-slash {
+  position: absolute; top: 50%; left: 50%;
+  width: min(560px, 62vmin); height: 6px;
+  background: linear-gradient(90deg, transparent, var(--cream) 8%, var(--cream) 50%, var(--blade) 55%, transparent);
+  transform: translate(-50%,-50%) rotate(-22deg) scaleX(0); box-shadow: 0 0 18px 2px var(--blade); opacity: 0;
+}
+.ka-slash.go { animation: kaSlashSwing .38s cubic-bezier(.2,.9,.3,1) forwards; }
+@keyframes kaSlashSwing { 0% { transform: translate(-50%,-50%) rotate(-22deg) scaleX(0); opacity: 0; } 18% { opacity: 1; } 55% { transform: translate(-50%,-50%) rotate(-22deg) scaleX(1); opacity: 1; } 100% { transform: translate(-50%,-50%) rotate(-22deg) scaleX(1); opacity: 0; } }
+.ka-slash2 {
+  position: absolute; top: 50%; left: 50%;
+  width: min(560px, 62vmin); height: 4px;
+  background: linear-gradient(90deg, transparent, var(--blade) 15%, var(--cream) 50%, var(--blade) 85%, transparent);
+  transform: translate(-50%,-50%) rotate(14deg) scaleX(0); box-shadow: 0 0 14px 1px var(--blade); opacity: 0;
+}
+.ka-slash2.go { animation: kaSlash2Swing .42s cubic-bezier(.2,.9,.3,1) .12s forwards; }
+@keyframes kaSlash2Swing { 0% { transform: translate(-50%,-50%) rotate(14deg) scaleX(0); opacity: 0; } 20% { opacity: .9; } 60% { transform: translate(-50%,-50%) rotate(14deg) scaleX(1); opacity: .9; } 100% { transform: translate(-50%,-50%) rotate(14deg) scaleX(1); opacity: 0; } }
+
+.ka-shield-ring {
+  position: absolute; top: 50%; left: 50%; width: 74px; height: 74px;
+  border: 2px solid var(--alive); border-radius: 50%; transform: translate(-50%,-50%) scale(.3); opacity: 0;
+}
+.ka-shield-ring.go { animation: kaShieldRing 1.05s cubic-bezier(.2,.7,.3,1) .1s forwards; }
+.ka-ring2.go { animation: kaShieldRing 1.05s cubic-bezier(.2,.7,.3,1) .28s forwards; }
+@keyframes kaShieldRing { 0% { transform: translate(-50%,-50%) scale(.3); opacity: 0; } 35% { opacity: .9; } 100% { transform: translate(-50%,-50%) scale(7.5); opacity: 0; } }
+
+.ka-ghost-wisp {
+  position: absolute; top: 50%; left: 50%; width: 96px; height: 96px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(216,168,232,.55), transparent 70%);
+  transform: translate(-50%,-50%) scale(.4); opacity: 0;
+}
+.ka-ghost-wisp.go { animation: kaWispRise 1.15s cubic-bezier(.3,.7,.3,1) .05s forwards; }
+.ka-ghost-ring2.go { animation: kaWispRise 1.15s cubic-bezier(.3,.7,.3,1) .25s forwards; }
+@keyframes kaWispRise { 0% { transform: translate(-50%,-50%) scale(.4); opacity: 0; } 30% { opacity: .95; } 100% { transform: translate(-50%,-60%) scale(2.6); opacity: 0; } }
+
+.ka-card { position: relative; z-index: 2; padding: 20px; max-width: 92vw; opacity: 0; transform: scale(.85); }
+.ka-card.go { animation: kaCardIn .5s cubic-bezier(.2,.8,.25,1) .22s forwards; }
+@keyframes kaCardIn { to { opacity: 1; transform: scale(1); } }
+.ka-icon { font-size: clamp(34px, 8vw, 50px); line-height: 1; margin-bottom: 8px; display: inline-block; }
+.ka-icon:empty { display: none; }
+.ka-icon.go { animation: kaIconPop .5s cubic-bezier(.3,1.6,.4,1) .26s both; }
+@keyframes kaIconPop { 0% { transform: scale(0) rotate(-30deg); opacity: 0; } 60% { transform: scale(1.25) rotate(6deg); opacity: 1; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+.ka-label { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--cream3); margin-bottom: 8px; }
+.ka-name {
+  font-family: 'Playfair Display', serif; font-weight: 900; font-style: italic;
+  font-size: clamp(30px, 9vw, 54px); color: var(--cream); letter-spacing: 1px; line-height: 1.05;
+}
+.ka-name.glow { animation: kaNameGlow 1.6s ease-in-out .05s infinite; }
+@keyframes kaNameGlow { 0%,100% { text-shadow: 0 0 24px rgba(196,30,58,.35); } 50% { text-shadow: 0 0 50px rgba(196,30,58,.9); } }
+.ka-name.ghost-glow { animation: kaGhostGlow 1.7s ease-in-out .05s infinite; }
+@keyframes kaGhostGlow { 0%,100% { text-shadow: 0 0 22px rgba(216,168,232,.4); } 50% { text-shadow: 0 0 48px rgba(216,168,232,.85); } }
+.ka-sub { margin-top: 12px; font-size: 12px; color: var(--cream2); letter-spacing: 1px; line-height: 1.7; }
+.ka-sub strong { color: var(--blade); }
+#scene-fx.ghost-tint .ka-sub strong { color: var(--ghost2); }
+
+/* ============ VOTE / REASSIGNMENT CEREMONY ============ */
+.vote-title {
+  font-family: 'Playfair Display', serif; font-size: clamp(28px, 8vw, 48px);
+  font-weight: 900; font-style: italic; letter-spacing: 7px; color: var(--blade); margin-bottom: 6px;
+  animation: raElNamePulse 1.8s ease-in-out infinite;
+}
+@keyframes raElNamePulse { 0%,100% { text-shadow: 0 0 20px rgba(196,30,58,.4); } 50% { text-shadow: 0 0 42px rgba(196,30,58,.9), 0 0 84px rgba(196,30,58,.25); } }
+.vote-sub { font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: var(--cream3); margin-bottom: 26px; }
+.vote-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 620px; }
+.vote-card {
+  position: relative; width: 108px; padding: 14px 10px; background: rgba(14,8,9,0.92);
+  border: 1px solid var(--seam2); opacity: 0; transform: translateY(16px) scale(.92);
+}
+.vote-card.in { animation: raElCardReveal .4s cubic-bezier(.2,.8,.25,1) forwards, cardBob 2.6s ease-in-out .5s infinite alternate; }
+@keyframes raElCardReveal { to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes cardBob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+.vote-card-index { font-size: 8px; letter-spacing: 2px; color: var(--cream3); text-transform: uppercase; margin-bottom: 6px; }
+.vote-card-name { font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 900; font-style: italic; color: var(--cream); line-height: 1.2; }
+.vote-card.struck { animation: raElStrike .45s ease forwards !important; }
+.vote-card.struck .vote-card-name { text-decoration: line-through; color: var(--blood); }
+.vote-card.struck::after {
+  content: '✕'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 38px; color: var(--blood); opacity: 0; text-shadow: 0 0 20px rgba(220,38,38,.6);
+}
+.vote-card.struck.mark::after { animation: raElXMark .4s cubic-bezier(.34,1.56,.64,1) forwards; }
+@keyframes raElStrike { 0% { transform: scale(1); box-shadow: none; } 15% { transform: scale(1.08); box-shadow: 0 0 30px rgba(220,38,38,.7); background: rgba(139,21,41,.35); } 40% { transform: scale(.97) rotate(-1deg); } 100% { transform: scale(.95); opacity: .4; } }
+@keyframes raElXMark { from { transform: scale(0) rotate(-45deg); opacity: 0; } to { transform: scale(1) rotate(0deg); opacity: .9; } }
+.vote-status { margin-top: 24px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--blade); min-height: 20px; }
+.vote-status.blink { animation: raElBlink 1s ease-in-out infinite; }
+@keyframes raElBlink { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+.vote-status.done { color: var(--alive); animation: none; }
+
+/* ============ WIN SCREEN ============ */
+#scene-win { background: radial-gradient(ellipse at 50% 35%, #1f0d00 0%, #0c0b09 65%); }
+#win-content { position: relative; z-index: 2; max-width: 640px; width: 100%; opacity: 0; }
+#scene-win.show #win-content { animation: winRise .9s cubic-bezier(.16,1,.3,1) both; }
+@keyframes winRise { from { opacity: 0; transform: translateY(50px) scale(.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes winFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.win-sword { font-size: clamp(40px, 12vw, 80px); display: block; opacity: 0; }
+#scene-win.show .win-sword { animation: winSwordSpin .7s .2s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes winSwordSpin { from { transform: rotate(-20deg) scale(0); opacity: 0; } to { transform: rotate(0deg) scale(1); opacity: 1; } }
+.win-eyebrow { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 5px; text-transform: uppercase; color: #3d3930; margin: 8px 0 16px; opacity: 0; }
+#scene-win.show .win-eyebrow { animation: winFadeIn .8s .5s both; }
+.win-subtitle { font-family: 'Playfair Display', serif; font-size: clamp(12px, 3vw, 18px); font-weight: 700; letter-spacing: 4px; color: #7a7060; text-transform: uppercase; opacity: 0; }
+#scene-win.show .win-subtitle { animation: winFadeIn .8s .6s both; }
+.win-name {
+  font-family: 'Playfair Display', serif; font-size: clamp(52px, 16vw, 120px); font-weight: 900; font-style: italic;
+  color: var(--blade); line-height: 1.05; margin: 12px 0 4px; opacity: 0;
+}
+#scene-win.show .win-name { animation: winNamePulse 2.5s 1.2s ease-in-out infinite, winRise .7s .4s cubic-bezier(.16,1,.3,1) both; }
+@keyframes winNamePulse { 0%,100% { text-shadow: 0 0 60px rgba(196,30,58,.6), 0 0 120px rgba(196,30,58,.2); } 50% { text-shadow: 0 0 100px rgba(196,30,58,1), 0 0 200px rgba(196,30,58,.4); } }
+.win-wins-label { font-family: 'Playfair Display', serif; font-size: clamp(22px, 6vw, 42px); font-weight: 900; letter-spacing: 8px; color: #f0ead8; text-transform: uppercase; opacity: 0; }
+#scene-win.show .win-wins-label { animation: winFadeIn .8s .9s both; }
+.win-rule { width: 160px; height: 2px; background: linear-gradient(90deg, transparent, var(--blade), transparent); margin: 20px auto; opacity: 0; }
+#scene-win.show .win-rule { animation: winFadeIn .8s 1s both; }
+.win-stats { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 2px; color: #7a7060; line-height: 2.2; opacity: 0; }
+#scene-win.show .win-stats { animation: winFadeIn .8s 1.1s both; }
+.win-runner { margin-top: 20px; font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 1.5px; color: #3d3930; opacity: 0; }
+#scene-win.show .win-runner { animation: winFadeIn .8s 1.3s both; }
+
+/* ============ TRANSITION CUT ============ */
+.cut-flash { position: fixed; inset: 0; z-index: 5; opacity: 0; pointer-events: none; }
+.cut-flash.go { animation: cutFlashPulse .4s ease-out; }
+@keyframes cutFlashPulse { 0% { opacity: .85; } 100% { opacity: 0; } }
+.cut-slash {
+  position: fixed; top: 50%; left: 50%; height: 8px; width: 240vmax; z-index: 5;
+  transform: translate(-50%,-50%) rotate(-16deg) scaleX(0); opacity: 0; pointer-events: none;
+}
+.cut-slash-a { background: linear-gradient(90deg, transparent, var(--cream) 15%, var(--cream) 50%, transparent 85%); box-shadow: 0 0 40px 6px currentColor; }
+.cut-slash-b { height: 4px; transform: translate(-50%,-50%) rotate(9deg) scaleX(0); background: linear-gradient(90deg, transparent 15%, var(--cream) 50%, transparent 85%); }
+.cut-slash.go { animation: cutSlashSweep .45s cubic-bezier(.2,.9,.3,1) forwards; }
+@keyframes cutSlashSweep { 0% { transform: translate(-50%,-50%) rotate(-16deg) scaleX(0); opacity: 0; } 25% { opacity: 1; } 60% { transform: translate(-50%,-50%) rotate(-16deg) scaleX(1); opacity: 1; } 100% { transform: translate(-50%,-50%) rotate(-16deg) scaleX(1); opacity: 0; } }
+.cut-slash-b.go { animation: cutSlashSweepB .45s cubic-bezier(.2,.9,.3,1) .05s forwards; }
+@keyframes cutSlashSweepB { 0% { transform: translate(-50%,-50%) rotate(9deg) scaleX(0); opacity: 0; } 25% { opacity: .9; } 60% { transform: translate(-50%,-50%) rotate(9deg) scaleX(1); opacity: .9; } 100% { transform: translate(-50%,-50%) rotate(9deg) scaleX(1); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div class="ambient-vignette"></div>
+  <div class="ambient-grain"></div>
+
+  <canvas class="fx-canvas" id="fx-rain"></canvas>
+  <canvas class="fx-canvas" id="fx-particles"></canvas>
+  <canvas class="fx-canvas" id="fx-confetti"></canvas>
+
+  <!-- INTRO -->
+  <div class="scene" id="scene-intro">
+    <div class="intro-mark">⚔</div>
+    <div class="intro-logo"><b>KNIVES<span>&nbsp;OUT</span></b></div>
+    <div class="intro-rule"></div>
+    <div class="intro-sub">Animation Showcase Reel</div>
+  </div>
+
+  <!-- FX: kill / immunity / ghost -->
+  <div class="scene" id="scene-fx">
+    <div class="ka-flash" id="ka-flash"></div>
+    <div class="ka-slash" id="ka-slash1"></div>
+    <div class="ka-slash2" id="ka-slash2"></div>
+    <div class="ka-shield-ring" id="ka-ring1"></div>
+    <div class="ka-shield-ring ka-ring2" id="ka-ring2"></div>
+    <div class="ka-ghost-wisp" id="ka-wisp1"></div>
+    <div class="ka-ghost-wisp ka-ghost-ring2" id="ka-wisp2"></div>
+    <div class="ka-card" id="ka-card">
+      <div class="ka-icon" id="ka-icon"></div>
+      <div class="ka-label" id="ka-label"></div>
+      <div class="ka-name" id="ka-name"></div>
+      <div class="ka-sub" id="ka-sub"></div>
+    </div>
+  </div>
+
+  <!-- VOTE -->
+  <div class="scene" id="scene-vote">
+    <div class="vote-title">THE VOTE</div>
+    <div class="vote-sub">Reassignment Ceremony</div>
+    <div class="vote-grid" id="vote-grid"></div>
+    <div class="vote-status blink" id="vote-status">Casting votes…</div>
+  </div>
+
+  <!-- WIN -->
+  <div class="scene" id="scene-win">
+    <div id="win-content">
+      <div class="win-sword">⚔</div>
+      <div class="win-eyebrow">— KNIVES OUT —</div>
+      <div class="win-subtitle">Last One Standing</div>
+      <div class="win-name" id="win-name">—</div>
+      <div class="win-wins-label">Wins</div>
+      <div class="win-rule"></div>
+      <div class="win-stats" id="win-stats"></div>
+      <div class="win-runner" id="win-runner"></div>
+    </div>
+  </div>
+
+  <div class="ambient-fade-black" id="fade-black"></div>
+
+  <div class="cut-flash" id="cut-flash"></div>
+  <div class="cut-slash cut-slash-a" id="cut-slash-a"></div>
+  <div class="cut-slash cut-slash-b" id="cut-slash-b"></div>
+
+  <div class="reel-tag"><span class="dot"></span>KNIVES OUT — FX REEL — LOOP 15S</div>
+  <div class="loop-bar"><div class="loop-bar-fill" id="loop-fill"></div></div>
+</div>
+
+<script>
+const LOOP_MS = 15000;
+const NAMES = ['ALPHA','BRAVO','CHARLIE','DELTA','ECHO','FOXTROT','GOLF','HOTEL','INDIA','JULIETT','KILO','LIMA','MIKE','NOVEMBER','OSCAR','PAPA','QUEBEC','ROMEO','SIERRA','TANGO','UNIFORM','VICTOR','WHISKEY','XRAY','YANKEE','ZULU'];
+
+function shuffled(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function retrigger(el){ if(!el) return; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
+function $(id){ return document.getElementById(id); }
+
+const scenes = ['scene-intro','scene-fx','scene-vote','scene-win'];
+function showScene(id){
+  scenes.forEach(s => $(s).classList.toggle('show', s === id));
+}
+function hideAllScenes(){ scenes.forEach(s => $(s).classList.remove('show')); }
+
+/* ---------- canvas particle systems ---------- */
+const canvases = {};
+['fx-rain','fx-particles','fx-confetti'].forEach(id => { canvases[id] = $(id).getContext('2d'); });
+function resizeCanvases(){
+  ['fx-rain','fx-particles','fx-confetti'].forEach(id => {
+    const c = $(id);
+    c.width = window.innerWidth; c.height = window.innerHeight;
+  });
+}
+resizeCanvases();
+window.addEventListener('resize', resizeCanvases);
+function clearCanvas(id){ const c = $(id); canvases[id].clearRect(0,0,c.width,c.height); }
+
+let burstToken = 0;
+function burst(color, gentle){
+  const id = 'fx-particles';
+  const ctx = canvases[id]; const c = $(id);
+  const myToken = ++burstToken;
+  const cx = c.width/2, cy = c.height/2;
+  const count = gentle ? 30 : 46;
+  const particles = Array.from({length: count}, () => {
+    const angle = Math.random()*Math.PI*2;
+    const speed = gentle ? (1 + Math.random()*2) : (2 + Math.random()*5.5);
+    return { x: cx, y: cy, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, size: 2+Math.random()*4, life: 1 };
+  });
+  let frame = 0;
+  function tick(){
+    if (myToken !== burstToken) return;
+    frame++;
+    ctx.clearRect(0,0,c.width,c.height);
+    let alive = false;
+    particles.forEach(p => {
+      if (p.life <= 0) return;
+      alive = true;
+      p.x += p.vx; p.y += p.vy; p.vx *= .96; p.vy *= .96; p.life -= .017;
+      ctx.globalAlpha = Math.max(p.life,0);
+      ctx.fillStyle = color;
+      ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+    });
+    ctx.globalAlpha = 1;
+    if (alive && frame < 220) requestAnimationFrame(tick); else ctx.clearRect(0,0,c.width,c.height);
+  }
+  tick();
+}
+
+let rainRunning = false;
+function startRain(color){
+  const id = 'fx-rain'; const ctx = canvases[id]; const c = $(id);
+  const w = c.width, h = c.height, floorY = h*0.86;
+  const drops = Array.from({length: 90}, () => ({ x: Math.random()*w, y: -Math.random()*h, len: 14+Math.random()*26, speed: 9+Math.random()*7, width: 1.3+Math.random()*1.6, opacity: .45+Math.random()*.4 }));
+  const splats = [];
+  for (let i=0; i<w; i += 26+Math.random()*18) splats.push({ x: i + (Math.random()*16-8), grown: 0 });
+  let puddle = 0;
+  rainRunning = true;
+  function tick(){
+    if (!rainRunning) return;
+    ctx.clearRect(0,0,w,h);
+    drops.forEach(d => {
+      d.y += d.speed;
+      if (d.y > floorY) { d.y = -d.len - Math.random()*40; d.x = Math.random()*w; }
+      ctx.globalAlpha = d.opacity; ctx.strokeStyle = color; ctx.lineWidth = d.width;
+      ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x-2, d.y+d.len); ctx.stroke();
+    });
+    if (puddle < 1) puddle = Math.min(1, puddle + .014);
+    ctx.globalAlpha = 1; ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, floorY);
+    splats.forEach(s => { if (s.grown < 1) s.grown = Math.min(1, s.grown + .012 + Math.random()*.012); const bump = (4+Math.random()*6)*s.grown*puddle; ctx.lineTo(s.x, floorY-bump); });
+    ctx.lineTo(w, floorY); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+    ctx.globalAlpha = .85*puddle; ctx.fill(); ctx.globalAlpha = 1;
+    if (rainRunning) requestAnimationFrame(tick);
+  }
+  tick();
+}
+function stopRain(){ rainRunning = false; clearCanvas('fx-rain'); }
+
+let confettiRunning = false;
+function startConfetti(){
+  const id = 'fx-confetti'; const ctx = canvases[id]; const c = $(id);
+  const COLORS = ['#c41e3a','#8b1529','#ede4e0','#b8a4a0','#dc2626','#d8a8e8','#caa24a'];
+  const particles = Array.from({length: 120}, () => ({
+    x: Math.random()*c.width, y: -20 - Math.random()*200,
+    vx: (Math.random()-0.5)*2, vy: 1.5+Math.random()*3,
+    size: 4+Math.random()*6, color: COLORS[Math.floor(Math.random()*COLORS.length)],
+    rotation: Math.random()*Math.PI*2, rotSpeed: (Math.random()-0.5)*0.15,
+    shape: Math.random() > .5 ? 'rect' : 'diamond', opacity: .7+Math.random()*.3
+  }));
+  confettiRunning = true;
+  function tick(){
+    if (!confettiRunning) return;
+    ctx.clearRect(0,0,c.width,c.height);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rotation += p.rotSpeed;
+      if (p.y > c.height + 20) { p.y = -20; p.x = Math.random()*c.width; }
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rotation);
+      ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color;
+      if (p.shape === 'rect') ctx.fillRect(-p.size/2, -p.size/3, p.size, p.size*0.66);
+      else { ctx.beginPath(); ctx.moveTo(0,-p.size/2); ctx.lineTo(p.size/2,0); ctx.lineTo(0,p.size/2); ctx.lineTo(-p.size/2,0); ctx.closePath(); ctx.fill(); }
+      ctx.restore();
+    });
+    ctx.globalAlpha = 1;
+    if (confettiRunning) requestAnimationFrame(tick);
+  }
+  tick();
+}
+function stopConfetti(){ confettiRunning = false; clearCanvas('fx-confetti'); }
+
+/* ---------- FX overlay scenario player ---------- */
+const FX_IDS = ['ka-flash','ka-slash1','ka-slash2','ka-ring1','ka-ring2','ka-wisp1','ka-wisp2','ka-card','ka-icon','ka-name'];
+function resetFX(){
+  FX_IDS.forEach(id => { const el = $(id); if (el) el.classList.remove('go','glow','ghost-glow'); });
+  stopRain();
+}
+function playFX(cfg){
+  resetFX();
+  $('scene-fx').classList.toggle('ghost-tint', !!cfg.ghostTint);
+  $('ka-icon').textContent = cfg.icon || '';
+  $('ka-label').textContent = cfg.label;
+  $('ka-name').textContent = cfg.name;
+  $('ka-name').style.color = cfg.nameColor;
+  $('ka-sub').innerHTML = cfg.sub;
+  showScene('scene-fx');
+  void $('ka-card').offsetWidth;
+
+  if (cfg.type === 'slash') {
+    if (cfg.flash) retrigger($('ka-flash'));
+    retrigger($('ka-slash1')); retrigger($('ka-slash2'));
+    if (cfg.danger) startRain(cfg.ghostTint ? '#9d6fb5' : '#c41e3a');
+    burst(cfg.ghostTint ? '#9d6fb5' : (cfg.danger ? '#dc2626' : '#c41e3a'));
+  } else if (cfg.type === 'shield') {
+    retrigger($('ka-ring1')); retrigger($('ka-ring2'));
+    burst('#2d6a3e', true);
+  } else if (cfg.type === 'ghost') {
+    retrigger($('ka-wisp1')); retrigger($('ka-wisp2'));
+    burst('#d8a8e8', true);
+    setTimeout(() => $('ka-name').classList.add('ghost-glow'), 500);
+  }
+  retrigger($('ka-card')); retrigger($('ka-icon'));
+  if (cfg.type !== 'ghost') setTimeout(() => $('ka-name').classList.add('glow'), 650);
+}
+
+const SCENARIOS = {
+  killerSuccess: (victim, kills) => ({ type:'slash', icon:'⚔', label:'TARGET ELIMINATED', name: victim, sub:`Kill count: <strong>${kills}</strong>`, nameColor:'var(--cream)', flash:true }),
+  victimEliminated: (killer) => ({ type:'slash', icon:'', label:'YOU HAVE BEEN ELIMINATED', name:'YOU ARE OUT', sub:`Eliminated by <strong>${killer}</strong>`, nameColor:'var(--blade)', flash:true, danger:true }),
+  killerBlocked: () => ({ type:'shield', icon:'🛡', label:'ATTACK BLOCKED', name:'IMMUNITY', sub:'Target was <strong>protected</strong> — now vulnerable', nameColor:'var(--alive)' }),
+  ghostKill: (victim) => ({ type:'ghost', icon:'👻', label:'GHOST KILL — BACK AMONG THE LIVING', name:'RISEN', sub:`Eliminated <strong>${victim}</strong> and returned`, nameColor:'var(--ghost2)' }),
+  ghostVictim: (killer) => ({ type:'slash', icon:'', label:'ELIMINATED BY A GHOST', name:'YOU ARE OUT', sub:`<strong>${killer}</strong> rose from the dead to strike`, nameColor:'var(--ghost2)', flash:true, danger:true, ghostTint:true })
+};
+
+/* ---------- vote scene ---------- */
+function playVote(cast){
+  const grid = $('vote-grid');
+  grid.innerHTML = '';
+  $('vote-status').className = 'vote-status blink';
+  $('vote-status').textContent = 'Casting votes…';
+  cast.forEach((name, i) => {
+    const card = document.createElement('div');
+    card.className = 'vote-card';
+    card.id = 'vote-card-' + i;
+    card.innerHTML = `<div class="vote-card-index">Seat 0${i+1}</div><div class="vote-card-name">${name}</div>`;
+    grid.appendChild(card);
+  });
+  showScene('scene-vote');
+  requestAnimationFrame(() => {
+    grid.querySelectorAll('.vote-card').forEach((card, i) => {
+      card.style.animationDelay = (i*0.08)+'s, ' + (0.5+i*0.08)+'s';
+      card.classList.add('in');
+    });
+  });
+}
+function strikeVote(idx){
+  const card = $('vote-card-'+idx);
+  if (!card) return;
+  card.classList.add('struck');
+  requestAnimationFrame(() => card.classList.add('mark'));
+  $('vote-status').className = 'vote-status done';
+  $('vote-status').textContent = 'Eliminated — Complete';
+  burst('#dc2626', true);
+}
+
+/* ---------- win scene ---------- */
+function playWin(winner, kills, ghostKills, players, lastVictim){
+  $('win-name').textContent = winner;
+  $('win-stats').innerHTML = `${kills} KILL${kills!==1?'S':''}${ghostKills>0? ` &nbsp;·&nbsp; ${ghostKills} AS GHOST`:''} &nbsp;·&nbsp; ${players} PLAYERS`;
+  $('win-runner').textContent = `Final kill: ${lastVictim}`;
+  showScene('scene-win');
+  startConfetti();
+  burst('#c41e3a', true);
+}
+function stopWin(){ stopConfetti(); }
+
+/* ---------- transition cut ---------- */
+function cut(color, onSwap){
+  ['cut-flash','cut-slash-a','cut-slash-b'].forEach(id => { $(id).style.color = color; });
+  $('cut-flash').style.background = color;
+  retrigger($('cut-flash')); retrigger($('cut-slash-a')); retrigger($('cut-slash-b'));
+  setTimeout(onSwap, 140);
+}
+
+/* ---------- master timeline ---------- */
+let timers = [];
+function clearTimers(){ timers.forEach(t => clearTimeout(t)); timers = []; }
+function at(ms, fn){ timers.push(setTimeout(fn, ms)); }
+
+function runCycle(){
+  clearTimers();
+  hideAllScenes();
+  resetFX(); stopWin();
+  $('fade-black').classList.remove('show');
+
+  const pool = shuffled(NAMES);
+  const [victimA, killerName, ghostVictimName, ghostKillerName] = pool;
+  const voteCast = [pool[4], pool[5], pool[6], pool[7], pool[8]];
+  const voteStruckIdx = Math.floor(Math.random() * voteCast.length);
+  const winnerName = pool[9];
+
+  // 0ms — intro
+  showScene('scene-intro');
+
+  // 2200ms — cut into killer-success (the clean kill) — intro now holds longer so the logo can be read
+  at(2200, () => cut('var(--blade)', () => playFX(SCENARIOS.killerSuccess(victimA, 3 + Math.floor(Math.random()*4)))));
+
+  // 3400ms — cut into victim-eliminated (the blood-rain kill)
+  at(3400, () => cut('var(--blood)', () => playFX(SCENARIOS.victimEliminated(killerName))));
+
+  // 5100ms — cut into immunity block
+  at(5100, () => cut('var(--alive)', () => playFX(SCENARIOS.killerBlocked())));
+
+  // 6600ms — cut into ghost kill (rises)
+  at(6600, () => cut('var(--ghost)', () => playFX(SCENARIOS.ghostKill(ghostVictimName))));
+
+  // 7900ms — quick internal swap: ghost kill -> ghost victim (soft beat, no full cut)
+  at(7900, () => playFX(SCENARIOS.ghostVictim(ghostKillerName)));
+
+  // 9400ms — cut into the vote
+  at(9400, () => cut('var(--blade2)', () => playVote(voteCast)));
+  at(9400 + 950, () => strikeVote(voteStruckIdx));
+
+  // 11100ms — cut into win screen
+  at(11100, () => cut('var(--gold)', () => playWin(winnerName, 6 + Math.floor(Math.random()*4), Math.random() > .5 ? 1 : 0, 8 + Math.floor(Math.random()*5), victimA)));
+
+  // 14700ms — fade to black tail before loop
+  at(14700, () => { $('fade-black').classList.add('show'); stopWin(); });
+}
+
+runCycle();
+setInterval(runCycle, LOOP_MS);
+$('loop-fill').style.animation = `loopFill ${LOOP_MS}ms linear infinite`;
+const styleTag = document.createElement('style');
+styleTag.textContent = '@keyframes loopFill { 0% { width: 0%; background-position: 0% 0; } 100% { width: 100%; background-position: 100% 0; } }';
+document.head.appendChild(styleTag);
+</script>
+</body>
+</html>
