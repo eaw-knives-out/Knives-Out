@@ -17,7 +17,7 @@
   --gold:#c9a24b;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{-webkit-text-size-adjust:100%;}
+html{-webkit-text-size-adjust:100%; overflow-x:hidden;}
 body{
   background:var(--ink);
   background-image:radial-gradient(ellipse at 50% -10%, rgba(196,30,58,0.16) 0%, transparent 55%);
@@ -26,7 +26,11 @@ body{
   font-size:14px;
   line-height:1.7;
   min-height:100vh;
+  overflow-x:hidden;
+  word-wrap:break-word;
+  overflow-wrap:break-word;
 }
+img,svg{max-width:100%;}
 body::after{
   content:'';
   position:fixed; inset:0;
@@ -98,14 +102,19 @@ main{padding:28px 16px 60px;}
 .card p:last-child{margin-bottom:0;}
 .card strong{color:var(--cream);}
 
-/* Schedule table */
-.sched{width:100%; border-collapse:collapse; font-size:12.5px;}
-.sched tr{border-bottom:1px solid var(--seam);}
-.sched tr:last-child{border-bottom:none;}
-.sched td{padding:12px 6px; vertical-align:top;}
-.sched .time{color:var(--blade); font-weight:700; white-space:nowrap; width:110px; font-size:12px;}
-.sched .ev{color:var(--cream); font-weight:700; white-space:nowrap; width:110px;}
-.sched .det{color:var(--cream2);}
+/* Schedule list */
+.sched{display:flex; flex-direction:column;}
+.sched-row{display:flex; gap:14px; padding:13px 0; border-bottom:1px solid var(--seam);}
+.sched-row:last-child{border-bottom:none; padding-bottom:2px;}
+.sched-row:first-child{padding-top:2px;}
+.sched-time{flex:0 0 84px; color:var(--blade); font-weight:700; font-size:11px; line-height:1.5; padding-top:1px;}
+.sched-body{flex:1; min-width:0;}
+.sched-ev{color:var(--cream); font-weight:700; font-size:12.5px; letter-spacing:.5px; text-transform:uppercase; margin-bottom:4px;}
+.sched-det{color:var(--cream2); font-size:12.5px; line-height:1.6;}
+@media (max-width:400px){
+  .sched-row{flex-direction:column; gap:4px;}
+  .sched-time{flex:none;}
+}
 
 /* Numbered steps / priority lists */
 .steps{display:flex; flex-direction:column; gap:12px;}
@@ -129,6 +138,15 @@ main{padding:28px 16px 60px;}
 .contact{background:var(--ink3); border:1px solid var(--seam); padding:12px; text-align:center; border-radius:2px;}
 .contact .who{font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--cream3);}
 .contact .num{font-family:'Playfair Display',serif; font-size:15px; color:var(--cream); margin-top:4px;}
+.contact .wa{
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  margin-top:10px; padding:9px 8px;
+  background:#25d366; color:#07070a;
+  font-family:'Courier Prime',monospace; font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+  text-decoration:none; border-radius:2px; min-height:36px;
+}
+.contact .wa:active{transform:translateY(1px);}
+.contact .wa svg{width:13px; height:13px; flex-shrink:0;}
 @media (max-width:420px){.contacts{grid-template-columns:1fr;}}
 
 /* Chain animation */
@@ -171,6 +189,11 @@ main{padding:28px 16px 60px;}
 .footer{text-align:center; padding:10px 16px 50px; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--cream3);}
 .footer .line{color:var(--blade); margin-bottom:4px; font-size:11px;}
 
+@media (max-width:380px){
+  .title{font-size:34px; letter-spacing:1px;}
+  .header{padding:32px 14px 16px;}
+}
+
 @media (min-width:700px){
   .title{font-size:56px;}
   main{padding:36px 24px 70px;}
@@ -204,13 +227,13 @@ main{padding:28px 16px 60px;}
       <div class="panel-head"><div class="num">Page 01</div><h2>Know the clock</h2></div>
       <div class="card">
         <div class="card-title">Important timings</div>
-        <table class="sched">
-          <tr><td class="time">1:00 – 1:30 PM</td><td class="ev">Briefing</td><td class="det">Briefing, Q&amp;A, and roll-call attendance. Missing roll call means immediate disqualification.</td></tr>
-          <tr><td class="time">1:30 PM</td><td class="ev">Game Start</td><td class="det">Passwords go out before 1:30 PM. Log in and confirm everything works before the hunt begins.</td></tr>
-          <tr><td class="time">1:55 – 2:00 PM</td><td class="ev">Immunity Window</td><td class="det">Claim window is open 5 minutes. Immunity holds for 2 hours, until 4:00 PM.</td></tr>
-          <tr><td class="time">3:15 – 3:30 PM</td><td class="ev">Ghost Protocol</td><td class="det">Revival voting opens 3:15 PM. Ghost and target are finalised by 3:30 PM.</td></tr>
-          <tr><td class="time">7:30 PM</td><td class="ev">Game End</td><td class="det">The hunt closes for good. Winners are decided by the priority rules on the Briefing tab.</td></tr>
-        </table>
+        <div class="sched">
+          <div class="sched-row"><div class="sched-time">1:00 – 1:30<br>PM</div><div class="sched-body"><div class="sched-ev">Briefing</div><div class="sched-det">Briefing, Q&amp;A, and roll-call attendance. Missing roll call means immediate disqualification.</div></div></div>
+          <div class="sched-row"><div class="sched-time">1:30 PM</div><div class="sched-body"><div class="sched-ev">Game Start</div><div class="sched-det">Passwords go out before 1:30 PM. Log in and confirm everything works before the hunt begins.</div></div></div>
+          <div class="sched-row"><div class="sched-time">1:55 – 2:00<br>PM</div><div class="sched-body"><div class="sched-ev">Immunity Window</div><div class="sched-det">Claim window is open 5 minutes. Immunity holds for 2 hours, until 4:00 PM.</div></div></div>
+          <div class="sched-row"><div class="sched-time">3:15 – 3:30<br>PM</div><div class="sched-body"><div class="sched-ev">Ghost Protocol</div><div class="sched-det">Revival voting opens 3:15 PM. Ghost and target are finalised by 3:30 PM.</div></div></div>
+          <div class="sched-row"><div class="sched-time">7:30 PM</div><div class="sched-body"><div class="sched-ev">Game End</div><div class="sched-det">The hunt closes for good. Winners are decided by the priority rules on the Briefing tab.</div></div></div>
+        </div>
       </div>
       <div class="alert alert-red">All game actions happen on the website — no need to assemble anywhere except for the briefing. Set your reminders now.</div>
     </section>
@@ -339,9 +362,9 @@ main{padding:28px 16px 60px;}
     <div class="line">Trust no one.</div>
     Moderator contact
     <div class="contacts">
-      <div class="contact"><div class="who">Vineet</div><div class="num">8867392301</div></div>
-      <div class="contact"><div class="who">Junaid</div><div class="num">9738966168</div></div>
-      <div class="contact"><div class="who">Nishchitha</div><div class="num">9535899769</div></div>
+      <div class="contact"><div class="who">Vineet</div><div class="num">8867392301</div><a class="wa" href="https://wa.me/918867392301?text=Hi%20Vineet%2C%20I%20want%20some%20information%20on%20Knives%20Out." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.32A8.86 8.86 0 0 0 3.32 17.15L2 22l4.97-1.3a8.86 8.86 0 0 0 4.24 1.08h.01a8.86 8.86 0 0 0 6.38-15.46zM11.22 20.2h-.01a7.36 7.36 0 0 1-3.75-1.03l-.27-.16-2.79.73.75-2.72-.18-.28a7.37 7.37 0 1 1 13.68-3.9 7.37 7.37 0 0 1-7.43 7.36zm4.04-5.52c-.22-.11-1.3-.64-1.5-.72-.2-.07-.35-.11-.5.11-.14.22-.57.72-.7.87-.13.15-.26.16-.48.05-.22-.11-.94-.35-1.79-1.11-.66-.59-1.11-1.32-1.24-1.54-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.05-.11-.5-1.21-.69-1.65-.18-.44-.37-.38-.5-.38h-.43c-.15 0-.39.05-.59.28-.2.22-.78.76-.78 1.86s.8 2.16.91 2.31c.11.15 1.57 2.4 3.8 3.36.53.23.95.37 1.27.47.53.17 1.02.15 1.4.09.43-.06 1.3-.53 1.48-1.04.18-.51.18-.94.13-1.03-.05-.1-.2-.15-.42-.26z"/></svg>WhatsApp</a></div>
+      <div class="contact"><div class="who">Junaid</div><div class="num">9738966168</div><a class="wa" href="https://wa.me/919738966168?text=Hi%20Junaid%2C%20I%20want%20some%20information%20on%20Knives%20Out." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.32A8.86 8.86 0 0 0 3.32 17.15L2 22l4.97-1.3a8.86 8.86 0 0 0 4.24 1.08h.01a8.86 8.86 0 0 0 6.38-15.46zM11.22 20.2h-.01a7.36 7.36 0 0 1-3.75-1.03l-.27-.16-2.79.73.75-2.72-.18-.28a7.37 7.37 0 1 1 13.68-3.9 7.37 7.37 0 0 1-7.43 7.36zm4.04-5.52c-.22-.11-1.3-.64-1.5-.72-.2-.07-.35-.11-.5.11-.14.22-.57.72-.7.87-.13.15-.26.16-.48.05-.22-.11-.94-.35-1.79-1.11-.66-.59-1.11-1.32-1.24-1.54-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.05-.11-.5-1.21-.69-1.65-.18-.44-.37-.38-.5-.38h-.43c-.15 0-.39.05-.59.28-.2.22-.78.76-.78 1.86s.8 2.16.91 2.31c.11.15 1.57 2.4 3.8 3.36.53.23.95.37 1.27.47.53.17 1.02.15 1.4.09.43-.06 1.3-.53 1.48-1.04.18-.51.18-.94.13-1.03-.05-.1-.2-.15-.42-.26z"/></svg>WhatsApp</a></div>
+      <div class="contact"><div class="who">Nishchitha</div><div class="num">9535899769</div><a class="wa" href="https://wa.me/919535899769?text=Hi%20Nishchitha%2C%20I%20want%20some%20information%20on%20Knives%20Out." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.32A8.86 8.86 0 0 0 3.32 17.15L2 22l4.97-1.3a8.86 8.86 0 0 0 4.24 1.08h.01a8.86 8.86 0 0 0 6.38-15.46zM11.22 20.2h-.01a7.36 7.36 0 0 1-3.75-1.03l-.27-.16-2.79.73.75-2.72-.18-.28a7.37 7.37 0 1 1 13.68-3.9 7.37 7.37 0 0 1-7.43 7.36zm4.04-5.52c-.22-.11-1.3-.64-1.5-.72-.2-.07-.35-.11-.5.11-.14.22-.57.72-.7.87-.13.15-.26.16-.48.05-.22-.11-.94-.35-1.79-1.11-.66-.59-1.11-1.32-1.24-1.54-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.05-.11-.5-1.21-.69-1.65-.18-.44-.37-.38-.5-.38h-.43c-.15 0-.39.05-.59.28-.2.22-.78.76-.78 1.86s.8 2.16.91 2.31c.11.15 1.57 2.4 3.8 3.36.53.23.95.37 1.27.47.53.17 1.02.15 1.4.09.43-.06 1.3-.53 1.48-1.04.18-.51.18-.94.13-1.03-.05-.1-.2-.15-.42-.26z"/></svg>WhatsApp</a></div>
     </div>
   </div>
 
