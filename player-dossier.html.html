@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>KNIVES OUT — Player Dossier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,900&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#07070a; --ink2:#0e0e13; --ink3:#16161d; --ink4:#1f1f28;
+  --seam:#2a2a35; --seam2:#3a3a48;
+  --blade:#c41e3a; --blade2:#8b1529;
+  --blood:#e0432f; --blood2:#7a1a12; --blood3:#2c0f0c;
+  --ghost:#7a5ea8; --ghost2:#c9b3ee;
+  --cream:#ede9e4; --cream2:#a9a5ae; --cream3:#63616f;
+  --gold:#c9a24b;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  background:var(--ink);
+  background-image:radial-gradient(ellipse at 50% -10%, rgba(196,30,58,0.16) 0%, transparent 55%);
+  color:var(--cream2);
+  font-family:'Courier Prime',monospace;
+  font-size:14px;
+  line-height:1.7;
+  min-height:100vh;
+}
+body::after{
+  content:'';
+  position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(255,255,255,0.012) 28px,rgba(255,255,255,0.012) 29px);
+  pointer-events:none; z-index:0;
+}
+.page{max-width:760px;margin:0 auto;position:relative;z-index:1;}
+
+/* Header */
+.header{text-align:center;padding:40px 16px 20px;}
+.eyebrow{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--blade);margin-bottom:10px;}
+.title{font-family:'Playfair Display',serif;font-size:44px;font-weight:900;letter-spacing:2px;color:var(--cream);}
+.title em{font-style:italic;color:var(--blade);}
+.subtitle{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--cream3);margin-top:8px;}
+.tagline{max-width:440px;margin:16px auto 0;font-size:13px;color:var(--cream2);line-height:1.7;}
+.enter-btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  margin-top:22px; padding:14px 32px;
+  background:var(--blade); color:var(--ink);
+  font-family:'Courier Prime',monospace; font-size:12px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase;
+  text-decoration:none; border-radius:2px; min-height:48px;
+  box-shadow:0 0 20px rgba(196,30,58,0.4);
+  animation:pulseGlow 1.8s infinite;
+}
+@keyframes pulseGlow{
+  0%{box-shadow:0 0 12px 1px rgba(196,30,58,0.4);}
+  50%{box-shadow:0 0 24px 4px rgba(224,67,47,0.55);}
+  100%{box-shadow:0 0 12px 1px rgba(196,30,58,0.4);}
+}
+.enter-btn:active{transform:translateY(1px);}
+
+/* Tabs */
+.tabs{
+  position:sticky; top:0; z-index:40;
+  display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  background:rgba(10,10,14,0.95); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border-top:1px solid var(--seam); border-bottom:1px solid var(--seam);
+  scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{display:none;}
+.tab-btn{
+  flex:1 0 auto; min-width:110px;
+  padding:14px 10px;
+  background:none; border:none; border-bottom:2px solid transparent;
+  font-family:'Courier Prime',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--cream3); cursor:pointer; white-space:nowrap;
+  transition:color .2s, border-color .2s;
+}
+.tab-btn .n{color:var(--seam2); margin-right:6px;}
+.tab-btn.active{color:var(--cream); border-bottom-color:var(--blade);}
+.tab-btn.active .n{color:var(--blade);}
+.tab-btn:hover{color:var(--cream);}
+
+/* Panels */
+main{padding:28px 16px 60px;}
+.tab-panel{display:none; animation:fade .35s ease;}
+.tab-panel.active{display:block;}
+@keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+.panel-head{margin-bottom:22px;}
+.panel-head .num{font-size:10px; letter-spacing:3px; color:var(--blade); text-transform:uppercase;}
+.panel-head h2{font-family:'Playfair Display',serif; font-size:26px; font-weight:900; font-style:italic; color:var(--cream); margin-top:4px;}
+
+/* Cards */
+.card{background:var(--ink2); border:1px solid var(--seam); padding:18px 16px; margin-bottom:16px; border-radius:3px;}
+.card-title{font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--cream3); margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+.card-title::after{content:''; flex:1; height:1px; background:var(--seam);}
+.card p{font-size:14px; color:var(--cream2); margin-bottom:10px;}
+.card p:last-child{margin-bottom:0;}
+.card strong{color:var(--cream);}
+
+/* Schedule table */
+.sched{width:100%; border-collapse:collapse; font-size:12.5px;}
+.sched tr{border-bottom:1px solid var(--seam);}
+.sched tr:last-child{border-bottom:none;}
+.sched td{padding:12px 6px; vertical-align:top;}
+.sched .time{color:var(--blade); font-weight:700; white-space:nowrap; width:110px; font-size:12px;}
+.sched .ev{color:var(--cream); font-weight:700; white-space:nowrap; width:110px;}
+.sched .det{color:var(--cream2);}
+
+/* Numbered steps / priority lists */
+.steps{display:flex; flex-direction:column; gap:12px;}
+.step-row{display:flex; gap:13px; align-items:flex-start;}
+.step-num{min-width:24px; height:24px; border-radius:50%; background:var(--ink3); border:1px solid var(--seam); color:var(--blade); font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;}
+
+/* Alerts */
+.alert{padding:13px 14px; margin:14px 0; border-left:3px solid; font-size:13px; line-height:1.6; border-radius:0 2px 2px 0;}
+.alert-red{background:#210b0a; border-color:var(--blade); color:#e08a8a;}
+.alert-gold{background:#241b0a; border-color:var(--gold); color:#e0c98a;}
+.alert-purple{background:#160f24; border-color:var(--ghost); color:var(--ghost2);}
+.alert:last-child{margin-bottom:0;}
+
+/* Rule list */
+.rulelist{display:flex; flex-direction:column; gap:14px;}
+.rule{display:flex; gap:12px;}
+.rule .tag{min-width:26px; font-family:'Playfair Display',serif; font-weight:900; color:var(--blade); font-size:15px;}
+
+/* Contact grid */
+.contacts{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;}
+.contact{background:var(--ink3); border:1px solid var(--seam); padding:12px; text-align:center; border-radius:2px;}
+.contact .who{font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--cream3);}
+.contact .num{font-family:'Playfair Display',serif; font-size:15px; color:var(--cream); margin-top:4px;}
+@media (max-width:420px){.contacts{grid-template-columns:1fr;}}
+
+/* Chain animation */
+.chain-card{text-align:center;}
+.chain-intro{font-size:13px; color:var(--cream2); max-width:420px; margin:0 auto 18px;}
+.chain-container{display:flex; flex-direction:column; align-items:center;}
+#chainSvg{width:100%; max-width:340px;}
+.chain-start-btn, .chain-replay{
+  margin-top:18px; padding:14px 30px; background:var(--blade); color:var(--ink);
+  border:none; font-family:'Courier Prime',monospace; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  cursor:pointer; border-radius:2px; min-height:48px; box-shadow:0 0 16px rgba(196,30,58,0.35);
+}
+.chain-replay{background:var(--ink3); color:var(--cream2); border:1px solid var(--seam); box-shadow:none; display:none;}
+.chain-start-btn:active, .chain-replay:active{transform:translateY(1px);}
+.step-dots{display:flex; gap:8px; justify-content:center; margin-top:16px; min-height:10px;}
+.step-dot{width:9px; height:9px; border-radius:50%; background:#2a2a35; transition:background .3s;}
+.step-dot.done{background:var(--blade2);}
+.step-dot.active{background:var(--blade);}
+.chain-log{width:100%; max-width:340px; border-left:2px solid var(--seam); padding-left:12px; margin:16px auto 0; min-height:70px; text-align:left;}
+.chain-log-line{font-size:12px; letter-spacing:.3px; line-height:2; color:#6a6874; opacity:0; transition:opacity .4s;}
+.chain-log-line.show{opacity:1;}
+.chain-log-line.red{color:#d67a7a;}
+.chain-log-line.gold{color:var(--gold);}
+
+/* Immunity track */
+.imm-window{display:flex; justify-content:space-between; background:var(--ink3); border:1px solid var(--seam); padding:14px; margin:14px 0; font-size:12px; border-radius:2px;}
+.imm-window div{text-align:center; flex:1;}
+.imm-window .lab{font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--cream3); margin-bottom:6px;}
+.imm-window .val{font-family:'Playfair Display',serif; font-size:18px; color:var(--blade);}
+
+/* Ghost timeline */
+.ghost-timeline{margin:14px 0 0; position:relative; padding-left:22px;}
+.ghost-timeline::before{content:''; position:absolute; left:7px; top:8px; bottom:8px; width:1px; background:var(--ghost); opacity:.4;}
+.ghost-tl-row{position:relative; margin-bottom:16px; font-size:13.5px; line-height:1.7;}
+.ghost-tl-row:last-child{margin-bottom:0;}
+.ghost-tl-row::before{content:''; position:absolute; left:-18px; top:6px; width:9px; height:9px; border-radius:50%; background:var(--ghost); opacity:.8;}
+.ghost-tl-label{font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--ghost2); margin-bottom:4px;}
+
+/* Footer */
+.footer{text-align:center; padding:10px 16px 50px; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--cream3);}
+.footer .line{color:var(--blade); margin-bottom:4px; font-size:11px;}
+
+@media (min-width:700px){
+  .title{font-size:56px;}
+  main{padding:36px 24px 70px;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="eyebrow">Confidential · Codename Access Only</div>
+    <div class="title">KNIVES <em>OUT</em></div>
+    <div class="subtitle">Player Dossier</div>
+    <p class="tagline">A live elimination game. Every player is both hunter and hunted — one closed loop. Trust no one.</p>
+    <a class="enter-btn" href="index.html">Enter Game →</a>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="schedule"><span class="n">01</span>Schedule</button>
+    <button class="tab-btn" data-tab="briefing"><span class="n">02</span>Briefing</button>
+    <button class="tab-btn" data-tab="chain"><span class="n">03</span>Chain</button>
+    <button class="tab-btn" data-tab="rules"><span class="n">04</span>Kill Rules</button>
+    <button class="tab-btn" data-tab="immunity"><span class="n">05</span>Immunity</button>
+    <button class="tab-btn" data-tab="ghost"><span class="n">06</span>Ghost</button>
+  </nav>
+
+  <main>
+
+    <!-- 01 SCHEDULE -->
+    <section class="tab-panel active" id="tab-schedule">
+      <div class="panel-head"><div class="num">Page 01</div><h2>Know the clock</h2></div>
+      <div class="card">
+        <div class="card-title">Important timings</div>
+        <table class="sched">
+          <tr><td class="time">1:00 – 1:30 PM</td><td class="ev">Briefing</td><td class="det">Briefing, Q&amp;A, and roll-call attendance. Missing roll call means immediate disqualification.</td></tr>
+          <tr><td class="time">1:30 PM</td><td class="ev">Game Start</td><td class="det">Passwords go out before 1:30 PM. Log in and confirm everything works before the hunt begins.</td></tr>
+          <tr><td class="time">1:55 – 2:00 PM</td><td class="ev">Immunity Window</td><td class="det">Claim window is open 5 minutes. Immunity holds for 2 hours, until 4:00 PM.</td></tr>
+          <tr><td class="time">3:15 – 3:30 PM</td><td class="ev">Ghost Protocol</td><td class="det">Revival voting opens 3:15 PM. Ghost and target are finalised by 3:30 PM.</td></tr>
+          <tr><td class="time">7:30 PM</td><td class="ev">Game End</td><td class="det">The hunt closes for good. Winners are decided by the priority rules on the Briefing tab.</td></tr>
+        </table>
+      </div>
+      <div class="alert alert-red">All game actions happen on the website — no need to assemble anywhere except for the briefing. Set your reminders now.</div>
+    </section>
+
+    <!-- 02 BRIEFING -->
+    <section class="tab-panel" id="tab-briefing">
+      <div class="panel-head"><div class="num">Page 02</div><h2>The objective</h2></div>
+      <div class="card">
+        <div class="card-title">Eliminate your target. Survive.</div>
+        <p>Someone else is hunting you at the same time. Every player is both hunter and hunted — one closed loop, no exceptions.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Winner priority</div>
+        <div class="steps">
+          <div class="step-row"><div class="step-num">1</div><div>The last player standing wins.</div></div>
+          <div class="step-row"><div class="step-num">2</div><div>If multiple players are alive at game end, the highest kill count wins.</div></div>
+          <div class="step-row"><div class="step-num">3</div><div>If tied on kill count, whoever landed their final kill first wins.</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">How to join</div>
+        <p>Log in using the codename and password assigned to you — your codename is your identity for the whole game.</p>
+        <p>An official WhatsApp group handles announcements. Your SID is your username; passwords go out well in advance.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Your dashboard</div>
+        <p>Press and hold to reveal your status — Alive, Dead, or Ghost.</p>
+        <p>Press and hold to reveal your current target. Release to hide it again. Avoid revealing your target in public — you may strategize with others, but trust no one.</p>
+      </div>
+    </section>
+
+    <!-- 03 CHAIN -->
+    <section class="tab-panel" id="tab-chain">
+      <div class="panel-head"><div class="num">Page 03</div><h2>The kill chain</h2></div>
+      <div class="card">
+        <div class="card-title">Mechanic</div>
+        <p>Every player sits inside one continuous loop. When you eliminate your target, you inherit their target. The chain closes behind you. The hunt continues.</p>
+        <p>This repeats until one player remains, or the winner-priority rules apply.</p>
+        <div class="alert alert-gold"><strong>Example:</strong> Aditi hunts Rohan, who hunts Kabir. The moment Aditi eliminates Rohan, she inherits his target — she now hunts Kabir directly. Kabir never knew Rohan was in danger. Nobody ever receives their own name. The loop always closes.</div>
+      </div>
+      <div class="card chain-card">
+        <div class="card-title">Watch the loop close</div>
+        <p class="chain-intro">Six codenames, one loop. Press start to watch eliminations cascade through the chain in real time.</p>
+        <div class="chain-container">
+          <svg id="chainSvg" viewBox="0 0 340 340"></svg>
+          <button class="chain-start-btn" id="chainStart">▶ Start the hunt</button>
+          <button class="chain-replay" id="chainReplay">&#8635; Replay</button>
+          <div class="step-dots" id="stepDots"></div>
+          <div class="chain-log" id="chainLog"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 KILL RULES -->
+    <section class="tab-panel" id="tab-rules">
+      <div class="panel-head"><div class="num">Page 04–05</div><h2>Confirming a kill</h2></div>
+      <div class="card">
+        <div class="card-title">Killer &amp; victim procedure</div>
+        <p><strong>Killer</strong> — generate a 6-digit kill code and show it to your target in person.</p>
+        <p><strong>Victim</strong> — enter the code you were shown to confirm your own elimination.</p>
+        <div class="alert alert-red">Codes expire 10 minutes after generation — regenerate as many times as needed. Only your named victim can confirm it, and the system rejects any invalid code. Only generate a code when you're actually about to make the kill. Dead players cannot generate codes.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Rules of engagement — binding</div>
+        <div class="rulelist">
+          <div class="rule"><div class="tag">1</div><div>The game is always active — it never pauses unless a rule below exempts it.</div></div>
+          <div class="rule"><div class="tag">2</div><div>3rd Floor exemption: a target seated at their desk, chair, or floor is protected. Wait until they stand. Kills are never allowed in the 3rd floor breakout room or washrooms.</div></div>
+          <div class="rule"><div class="tag">3</div><div>Witnesses are fine — kills may be seen by other active players or non-participants.</div></div>
+          <div class="rule"><div class="tag">4</div><div>Contact required: physical contact plus saying "you're dead" (or equivalent) must happen before showing the code. Silent kills are void.</div></div>
+          <div class="rule"><div class="tag">5</div><div>Work is protected: standing alone at your desk working is not protection, but you're safe during a meeting, call, or presentation until it ends.</div></div>
+          <div class="rule"><div class="tag">6</div><div>No camping: avoiding the floor, other players, or slipping off home to dodge a hunt isn't fair play and may lead to disqualification at the moderator's discretion.</div></div>
+        </div>
+        <div class="alert alert-gold">When in doubt, wait. A disputed kill helps no one. Contact the moderator only for a genuine dispute — once a victim enters the code, there's no appeal.</div>
+      </div>
+    </section>
+
+    <!-- 05 IMMUNITY -->
+    <section class="tab-panel" id="tab-immunity">
+      <div class="panel-head"><div class="num">Page 06</div><h2>Immunity claim</h2></div>
+      <div class="card">
+        <div class="card-title">The window</div>
+        <div class="imm-window">
+          <div><div class="lab">Claim opens</div><div class="val">1:55 PM</div></div>
+          <div><div class="lab">Claim closes</div><div class="val">2:00 PM</div></div>
+          <div><div class="lab">Holds until</div><div class="val">4:00 PM</div></div>
+        </div>
+        <p>Alive players race to claim immunity on the portal — limited slots, fastest valid claims win. Submit once; spamming doesn't help. You're never told if you won a slot.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Fastest fingers first</div>
+        <p>The first N players to claim inside the window win a slot — N is fixed and announced beforehand. If N = 5, the first 5 fastest claims win; the 6th doesn't, even a second behind.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">What happens in a kill</div>
+        <div class="steps">
+          <div class="step-row"><div class="step-num">1</div><div>First valid attack while immune: the kill fails, you survive, immunity is consumed. Both killer and victim are notified automatically.</div></div>
+          <div class="step-row"><div class="step-num">2</div><div>Any attack after that resolves normally — once immunity is used, you're vulnerable again.</div></div>
+        </div>
+        <div class="alert alert-red">Only alive players can claim, one claim per player. Miss the window and no claim is submitted for you.</div>
+      </div>
+    </section>
+
+    <!-- 06 GHOST -->
+    <section class="tab-panel" id="tab-ghost">
+      <div class="panel-head"><div class="num">Page 07</div><h2>Ghost protocol</h2></div>
+      <div class="card">
+        <div class="card-title">Second chance — two-stage vote</div>
+        <p><strong>Stage 1 — Alive vote:</strong> alive players vote for one dead or ghost player to revive.</p>
+        <p><strong>Stage 2 — Dead vote:</strong> dead players vote which alive player the revived ghost must assassinate.</p>
+        <div class="alert alert-purple">For the ghost vote, share your SID once voting opens — think of it as a mini campaign. Voting priority: highest vote count wins; ties go to whoever reached that tally first.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">If you're revived</div>
+        <div class="ghost-timeline">
+          <div class="ghost-tl-row"><div class="ghost-tl-label">Revived</div>You re-enter the game as a Ghost with a specific target assigned by the dead players' vote.</div>
+          <div class="ghost-tl-row"><div class="ghost-tl-label">Your mission</div>Eliminate your assigned target using the normal kill code system. They don't know they're being hunted.</div>
+          <div class="ghost-tl-row"><div class="ghost-tl-label">Time limit</div>You have 2 hours. Kill in time and you're fully alive again, inheriting their hunter and their victim.</div>
+          <div class="ghost-tl-row"><div class="ghost-tl-label">If you fail</div>Time runs out → permanent elimination. No further chances.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="footer">
+    <div class="line">Trust no one.</div>
+    Moderator contact
+    <div class="contacts">
+      <div class="contact"><div class="who">Vineet</div><div class="num">8867392301</div></div>
+      <div class="contact"><div class="who">Junaid</div><div class="num">9738966168</div></div>
+      <div class="contact"><div class="who">Nishchitha</div><div class="num">9535899769</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── TAB SWITCHING ── */
+(function(){
+  const btns = document.querySelectorAll('.tab-btn');
+  const panels = document.querySelectorAll('.tab-panel');
+  btns.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      btns.forEach(b=>b.classList.remove('active'));
+      panels.forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+      btn.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+    });
+  });
+})();
+
+/* ── KILL CHAIN ANIMATION (starts only on button click) ── */
+(function(){
+  const NS='http://www.w3.org/2000/svg';
+  const CX=170,CY=170,R=118,NR=26;
+
+  const PLAYERS=[
+    {id:0,name:'VIPER'},{id:1,name:'WOLF'},{id:2,name:'HAWK'},
+    {id:3,name:'FOX'},{id:4,name:'CROW'},{id:5,name:'LYNX'}
+  ];
+
+  const KILLS=[
+    {killer:1,victim:2,logClass:'red', msg:"▸ WOLF eliminates HAWK — inherits HAWK's target (FOX)"},
+    {killer:5,victim:0,logClass:'red', msg:"▸ LYNX eliminates VIPER — inherits VIPER's target (WOLF)"},
+    {killer:3,victim:4,logClass:'red', msg:"▸ FOX eliminates CROW — inherits CROW's target (LYNX)"},
+    {killer:1,victim:3,logClass:'red', msg:"▸ WOLF eliminates FOX — inherits FOX's target (LYNX)"},
+    {killer:5,victim:1,logClass:'gold',msg:"▸ LYNX eliminates WOLF — last hunter standing"},
+  ];
+
+  let alive={}, chainTargets=[1,2,3,4,5,0], timers=[], running=false;
+
+  function hexPos(i){
+    const a=(i/6)*2*Math.PI-Math.PI/2;
+    return{x:CX+R*Math.cos(a),y:CY+R*Math.sin(a)};
+  }
+  function mk(tag,attrs){
+    const el=document.createElementNS(NS,tag);
+    for(const[k,v]of Object.entries(attrs))el.setAttribute(k,v);
+    return el;
+  }
+  function trimLine(x1,y1,x2,y2,t){
+    const dx=x2-x1,dy=y2-y1,d=Math.sqrt(dx*dx+dy*dy),f=t/d;
+    return{x1:x1+dx*f,y1:y1+dy*f,x2:x2-dx*f,y2:y2-dy*f};
+  }
+  function buildDots(){
+    const bar=document.getElementById('stepDots');
+    bar.innerHTML='';
+    KILLS.forEach((_,i)=>{
+      const d=document.createElement('div');
+      d.className='step-dot'; d.id='dot-'+i;
+      bar.appendChild(d);
+    });
+  }
+  function updateDots(cur){
+    KILLS.forEach((_,i)=>{
+      const d=document.getElementById('dot-'+i);
+      if(d)d.className='step-dot'+(i<cur?' done':i===cur?' active':'');
+    });
+  }
+  function addLog(msg,cls){
+    const log=document.getElementById('chainLog');
+    if(log.children.length>=4)log.removeChild(log.firstChild);
+    const el=document.createElement('div');
+    el.className='chain-log-line '+(cls||'');
+    el.textContent=msg;
+    log.appendChild(el);
+    requestAnimationFrame(()=>el.classList.add('show'));
+  }
+  function render(){
+    const svg=document.getElementById('chainSvg');
+    svg.innerHTML='';
+    const defs=mk('defs',{});
+    const marker=mk('marker',{id:'arr',viewBox:'0 0 10 10',refX:'8',refY:'5',markerWidth:'5',markerHeight:'5',orient:'auto-start-reverse'});
+    marker.appendChild(mk('path',{d:'M2 1L8 5L2 9',fill:'none',stroke:'#8b2a2a','stroke-width':'2','stroke-linecap':'round','stroke-linejoin':'round'}));
+    defs.appendChild(marker); svg.appendChild(defs);
+
+    PLAYERS.filter(p=>alive[p.id]).forEach(p=>{
+      const tid=chainTargets[p.id];
+      if(!alive[tid])return;
+      const f=hexPos(p.id),t2=hexPos(tid);
+      const tr=trimLine(f.x,f.y,t2.x,t2.y,NR+4);
+      svg.appendChild(mk('line',{x1:tr.x1,y1:tr.y1,x2:tr.x2,y2:tr.y2,stroke:'#3a3542','stroke-width':'1.5','stroke-dasharray':'5 4','marker-end':'url(#arr)',opacity:'0.7'}));
+    });
+
+    PLAYERS.forEach(p=>{
+      const{x,y}=hexPos(p.id);
+      const isAlive=alive[p.id];
+      const g=mk('g',{transform:`translate(${x},${y})`});
+      g.appendChild(mk('circle',{r:NR,fill:isAlive?'#16161d':'#100f14',stroke:isAlive?'#4a3038':'#2a2530','stroke-width':isAlive?'1.5':'1',opacity:isAlive?'1':'0.3'}));
+      const lbl=mk('text',{x:'0',y:'1',fill:isAlive?'#c9c5cf':'#4a4650','font-size':'10px','font-family':'Courier Prime, monospace','font-weight':isAlive?'700':'400','text-anchor':'middle','dominant-baseline':'middle','letter-spacing':'0.5px',opacity:isAlive?'1':'0.35'});
+      lbl.textContent=p.name;
+      g.appendChild(lbl);
+      if(!isAlive){
+        g.appendChild(mk('line',{x1:'-7',y1:'-7',x2:'7',y2:'7',stroke:'#4a3535','stroke-width':'1.5'}));
+        g.appendChild(mk('line',{x1:'7',y1:'-7',x2:'-7',y2:'7',stroke:'#4a3535','stroke-width':'1.5'}));
+      }
+      svg.appendChild(g);
+    });
+
+    const ct=mk('text',{x:CX,y:CY-7,fill:'#5a5764','font-size':'10px','font-family':'Courier Prime, monospace','text-anchor':'middle','letter-spacing':'2px'});
+    ct.textContent=`${Object.values(alive).filter(Boolean).length} remain`;
+    svg.appendChild(ct);
+  }
+  function flashDeath(id,cb){
+    const svg=document.getElementById('chainSvg');
+    const{x,y}=hexPos(id);
+    [[0,NR+28],[80,NR+20],[160,NR+36]].forEach(([delay,radius])=>{
+      setTimeout(()=>{
+        const ring=mk('circle',{cx:x,cy:y,r:NR,fill:'none',stroke:'#8b2a2a','stroke-width':'2',opacity:'0.9'});
+        svg.appendChild(ring);
+        let op=0.9,r=NR;
+        const iv=setInterval(()=>{
+          op-=0.05;r+=(radius-NR)*0.05;
+          ring.setAttribute('opacity',op);ring.setAttribute('r',r);
+          if(op<=0){clearInterval(iv);ring.remove();}
+        },20);
+      },delay);
+    });
+    setTimeout(cb,600);
+  }
+  function travelDot(fromId,toId,cb){
+    const svg=document.getElementById('chainSvg');
+    const from=hexPos(fromId),to=hexPos(toId);
+    const dot=mk('circle',{r:'5',fill:'#c41e3a',opacity:'0.95'});
+    svg.appendChild(dot);
+    const dur=700; let start=null;
+    function step(ts){
+      if(!start)start=ts;
+      const p=Math.min((ts-start)/dur,1);
+      const e=p<0.5?2*p*p:1-((-2*p+2)**2)/2;
+      dot.setAttribute('cx',from.x+(to.x-from.x)*e);
+      dot.setAttribute('cy',from.y+(to.y-from.y)*e);
+      p<1?requestAnimationFrame(step):(dot.remove(),cb());
+    }
+    requestAnimationFrame(step);
+  }
+  function runStep(i){
+    if(i>=KILLS.length){
+      updateDots(KILLS.length);
+      setTimeout(()=>{
+        addLog('▸ LYNX is the last one standing. LOOP CLOSED.','gold');
+        const svg=document.getElementById('chainSvg');
+        const{x,y}=hexPos(5);
+        let n=0;
+        const iv=setInterval(()=>{
+          const ring=mk('circle',{cx:x,cy:y,r:NR+6,fill:'none',stroke:'#c41e3a','stroke-width':'2',opacity:'0.8'});
+          svg.appendChild(ring);
+          let op=0.8,r=NR+6;
+          const r2=setInterval(()=>{
+            op-=0.04;r+=1.2;
+            ring.setAttribute('opacity',op);ring.setAttribute('r',r);
+            if(op<=0){clearInterval(r2);ring.remove();}
+          },20);
+          if(++n>=5)clearInterval(iv);
+        },260);
+        running=false;
+        document.getElementById('chainReplay').style.display='inline-flex';
+      },200);
+      return;
+    }
+    updateDots(i);
+    const kill=KILLS[i];
+    travelDot(kill.killer,kill.victim,()=>{
+      flashDeath(kill.victim,()=>{
+        alive[kill.victim]=false;
+        chainTargets[kill.killer]=chainTargets[kill.victim];
+        render();
+        addLog(kill.msg,kill.logClass);
+        timers.push(setTimeout(()=>runStep(i+1),1400));
+      });
+    });
+  }
+  function startAnimation(){
+    if(running)return;
+    running=true;
+    timers.forEach(clearTimeout); timers=[];
+    alive={0:true,1:true,2:true,3:true,4:true,5:true};
+    chainTargets=[1,2,3,4,5,0];
+    document.getElementById('chainLog').innerHTML='';
+    document.getElementById('chainStart').style.display='none';
+    document.getElementById('chainReplay').style.display='none';
+    buildDots(); updateDots(-1); render();
+    addLog('▸ Six codenames. One loop. The hunt begins.','gold');
+    timers.push(setTimeout(()=>runStep(0),1200));
+  }
+
+  // Initial static state — no movement until the player presses start
+  alive={0:true,1:true,2:true,3:true,4:true,5:true};
+  buildDots(); render();
+
+  document.getElementById('chainStart').addEventListener('click',startAnimation);
+  document.getElementById('chainReplay').addEventListener('click',startAnimation);
+})();
+</script>
+</body>
+</html>
