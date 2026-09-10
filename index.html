@@ -3212,6 +3212,132 @@ async function recomputeImmunityFromClaims(persist = false, options = {}) {
   if (persist) await updateGameState({ immunity: gameState.immunity });
 }
 
+// BUGFIX (root cause of "immunity isn't assigned to the winners" / "keeps
+// flickering"): recomputeImmunityFromClaims() computes the new winner set off
+// the CALLING CLIENT'S own in-memory gameState, then persists through
+// updateGameState() — which for immunity/immunePlayers and immunity/grants
+// diff-MERGES against that client's own last-synced baseline (see
+// ARRAY_MERGE_FIELDS / OBJECT_MERGE_FIELDS above), by design so unrelated
+// concurrent edits don't stomp each other. A "finalize" isn't an unrelated
+// incremental edit though — it's supposed to be a single authoritative
+// recomputation. When multiple clients (every open player tab AND the mod
+// tab) each independently run their own finalize within the same moment —
+// which is exactly what happens on a scheduled window close, since every
+// connected client's syncScheduledImmunityWindow() poll notices the window
+// closed at basically the same instant — each one's own locally-computed
+// "winner" gets unioned onto the shared array instead of a single pick
+// winning. With slots=1 and 11 players online, that's how all 11 ended up
+// immune instead of just the fastest claimant.
+// This function fixes it by doing the exact same computation ONCE, inside a
+// '/game' root transaction (the same pattern confirmKillAsVictim and
+// reconcileImmunityExpiry already use for this reason) — reading claims and
+// players straight off the transaction's own fresh snapshot, never off any
+// client's cached gameState, and REPLACING immunePlayers/grants wholesale
+// within that same atomic commit. Every racing client's transaction attempt
+// converges on the identical answer, and Firebase's automatic retry-on-
+// conflict means only one attempt actually wins the write.
+async function finalizeImmunityWindowTransactional(options = {}) {
+  if (!db) return null;
+  const finalizeClose = options.finalizeClose === true; // recompute AND stamp a fresh expiresAt for every winner
+  const markClosed = options.markClosed === true;        // also flip claimWindowOpen=false / stamp lastClosedAt if unset
+  const matches = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+  let winnersThisAttempt = [];
+
+  const txResult = await db.ref('/game').transaction(raw => {
+    if (!raw) return raw;
+    raw.immunity = raw.immunity || {};
+    raw.players = Array.isArray(raw.players) ? raw.players : [];
+    raw.mods = Array.isArray(raw.mods) ? raw.mods : [];
+    const imm = raw.immunity;
+    imm.claims = imm.claims || {};
+    imm.grants = imm.grants || {};
+    imm.revokedPlayers = imm.revokedPlayers || {};
+    imm.consumedByAttack = imm.consumedByAttack || {};
+    imm.manualGrants = imm.manualGrants || {};
+
+    if (markClosed) {
+      imm.claimWindowOpen = false;
+      imm.claim_window_open = false;
+      if (!imm.lastClosedAt) imm.lastClosedAt = new Date().toISOString();
+    }
+
+    const eligible = raw.players.filter(p => p.status === 'alive' && !raw.mods.some(m => matches(m, p.name)));
+    const isRevoked = name => Object.keys(imm.revokedPlayers).some(k => matches(k, name));
+    const isConsumedByAttack = name => Object.keys(imm.consumedByAttack).some(k => matches(k, name));
+    const isClaimConsumed = entry => Boolean(entry && (entry.consumed || entry.immunityConsumed));
+    const claimTime = entry => (typeof entry?.ts === 'number' ? entry.ts : (typeof entry?.clientTs === 'number' ? entry.clientTs : null));
+
+    const sorted = Object.entries(imm.claims)
+      .filter(([name, entry]) => {
+        if (!entry || claimTime(entry) === null || isClaimConsumed(entry)) return false;
+        if (isConsumedByAttack(name)) return false;
+        return eligible.some(p => matches(p.name, name));
+      })
+      .sort((a, b) => claimTime(a[1]) - claimTime(b[1]));
+
+    const cap = Math.max(0, parseInt(imm.slots, 10) || 0);
+    const winners = [];
+    for (const [name] of sorted) {
+      if (isRevoked(name)) continue;
+      winners.push(name);
+      if (winners.length >= cap) break;
+    }
+    // Manual grants are an explicit override — always included, never capped.
+    Object.keys(imm.manualGrants).forEach(name => {
+      if (isRevoked(name) || isConsumedByAttack(name)) return;
+      if (!eligible.some(p => matches(p.name, name))) return;
+      if (!winners.some(w => matches(w, name))) winners.push(name);
+    });
+
+    // Everything below reads only `imm`/`raw` from THIS transaction attempt —
+    // never the outer client-side gameState — so every retry (by this client
+    // or any other racing client) converges on the same expiresAt too.
+    let closeMs;
+    if (imm.lastClosedAt) {
+      const t = new Date(imm.lastClosedAt).getTime();
+      closeMs = Number.isNaN(t) ? Date.now() : t;
+    } else {
+      const endStr = imm.end;
+      const parts = endStr && endStr.includes(':') ? endStr.split(':').map(Number) : null;
+      if (parts && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
+        const nowIst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        closeMs = new Date(nowIst.getFullYear(), nowIst.getMonth(), nowIst.getDate(), parts[0], parts[1], 0, 0).getTime();
+      } else {
+        closeMs = Date.now();
+      }
+    }
+    const durH = parseFloat(imm.durationHours);
+    const durationMs = Number.isFinite(durH) && durH > 0 ? durH * 60 * 60 * 1000 : IMMUNITY_DURATION_MS;
+    const freshExpiresAt = new Date(closeMs + durationMs).toISOString();
+    const nowIso = new Date().toISOString();
+
+    const newGrants = {};
+    winners.forEach(name => {
+      const existing = imm.grants[name];
+      if (finalizeClose) {
+        newGrants[name] = { grantedAt: existing?.grantedAt || nowIso, expiresAt: freshExpiresAt };
+      } else {
+        newGrants[name] = existing?.expiresAt
+          ? { grantedAt: existing.grantedAt || nowIso, expiresAt: existing.expiresAt }
+          : { grantedAt: existing?.grantedAt || nowIso, expiresAt: freshExpiresAt };
+      }
+    });
+
+    imm.grants = newGrants;
+    imm.immunePlayers = winners;
+    imm.immune_players = winners.slice();
+    imm.lastComputedAt = nowIso;
+    if (finalizeClose) imm.lastFinalizedAt = nowIso;
+    winnersThisAttempt = winners;
+    return raw;
+  });
+
+  if (!txResult || !txResult.committed) return null;
+  const committedGame = txResult.snapshot.val() || {};
+  gameState.immunity = committedGame.immunity || gameState.immunity;
+  return winnersThisAttempt;
+}
+
 function immunityWinnersNeedCatchUpFinalize() {
   if (!gameState?.settings?.immunityEnabled || getEffectiveClaimWindowOpen()) return false;
   // BUGFIX: this check exists for "window closed in DB but finalize never ran"
@@ -3242,9 +3368,15 @@ async function syncScheduledImmunityWindow() {
   if (!effectiveOpen && immunityWinnersNeedCatchUpFinalize()) {
     immunityWindowSyncInFlight = true;
     try {
-      if (!gameState.immunity.lastClosedAt) gameState.immunity.lastClosedAt = new Date().toISOString();
-      gameState.immunity.claimWindowOpen = false;
-      await recomputeImmunityFromClaims(true, { finalizeClose: true });
+      // BUGFIX: this used to mutate local gameState and call
+      // recomputeImmunityFromClaims(true, {finalizeClose:true}), which persists
+      // via a diff-merge against THIS client's own baseline. Since this exact
+      // branch runs on every connected client's poll, near-simultaneous close
+      // detection across many tabs meant each one's own pick got unioned onto
+      // the shared immunePlayers list instead of one authoritative pick
+      // winning. finalizeImmunityWindowTransactional() computes and commits
+      // the winner set atomically, so it doesn't matter how many clients race in.
+      await finalizeImmunityWindowTransactional({ finalizeClose: true, markClosed: true });
     } finally {
       immunityWindowSyncInFlight = false;
     }
@@ -3261,12 +3393,13 @@ async function syncScheduledImmunityWindow() {
   immunityWindowSyncInFlight = true;
   try {
     const wasOpen = Boolean(gameState.immunity.claimWindowOpen);
-    gameState.immunity.claimWindowOpen = effectiveOpen;
-    if (!wasOpen && effectiveOpen) gameState.immunity.lastOpenedAt = new Date().toISOString();
     if (wasOpen && !effectiveOpen) {
-      gameState.immunity.lastClosedAt = new Date().toISOString();
-      await recomputeImmunityFromClaims(true, { finalizeClose: true });
+      // Same fix as the catch-up branch above — every client notices the
+      // scheduled close within the same instant, so this must be atomic too.
+      await finalizeImmunityWindowTransactional({ finalizeClose: true, markClosed: true });
     } else {
+      gameState.immunity.claimWindowOpen = effectiveOpen;
+      if (!wasOpen && effectiveOpen) gameState.immunity.lastOpenedAt = new Date().toISOString();
       ensureImmunityGrantExpiries();
       await updateGameState({ immunity: gameState.immunity });
     }
@@ -6518,8 +6651,9 @@ async function grantImmunity() {
   // the slot cap.
   if (!gameState.immunity.manualGrants) gameState.immunity.manualGrants = {};
   gameState.immunity.manualGrants[claimKey] = true;
+  await updateGameState({ immunity: gameState.immunity });
 
-  await recomputeImmunityFromClaims(true, { force: true });
+  await finalizeImmunityWindowTransactional({ finalizeClose: false });
 
   if (!gameState.immunity.immunePlayers.some(n => immunityPlayerNameMatches(n, name))) {
     // Should not happen (manual grants are unconditional), but don't lie to the mod if it does —
@@ -6652,9 +6786,8 @@ async function modOpenClaimWindow() {
 async function modCloseClaimWindow() {
   if (!confirm(`Close immunity window now? Top claims become immune for ${gameState.immunity.durationHours || 23.5}h. Queue stays visible.`)) return;
   gameState.immunity.manualOverride = 'closed';
-  gameState.immunity.claimWindowOpen = false;
-  gameState.immunity.lastClosedAt = new Date().toISOString();
-  await recomputeImmunityFromClaims(true, { finalizeClose: true });
+  await updateGameState({ immunity: gameState.immunity });
+  await finalizeImmunityWindowTransactional({ finalizeClose: true, markClosed: true });
   await logAuditEvent('immunity.window_closed', {
     mode: 'manual_override',
     manualOverride: gameState.immunity.manualOverride,
@@ -6670,8 +6803,8 @@ async function modClearClaims() {
   if (!confirm('Clear entire claim queue? This removes all current claim ordering.')) return;
   const previousClaims = Object.keys(gameState.immunity.claims || {});
   gameState.immunity.claims = {};
-  await recomputeImmunityFromClaims(true, { force: true });
   await updateGameState({ immunity: gameState.immunity });
+  await finalizeImmunityWindowTransactional({ finalizeClose: false });
   await logAuditEvent('immunity.claims_cleared', { previousClaims });
   await afterImmunityAction('Claim queue cleared', previousClaims.length ? `Removed ${previousClaims.length} claim(s).` : 'Queue was already empty.');
 }
@@ -6744,11 +6877,10 @@ async function modClearWindowOverride() {
   const scheduledOpen = isWithinImmunityWindow();
   const wasOpen = Boolean(gameState.immunity.claimWindowOpen);
   gameState.immunity.claimWindowOpen = scheduledOpen;
-  if (wasOpen && !scheduledOpen) {
-    gameState.immunity.lastClosedAt = new Date().toISOString();
-    await recomputeImmunityFromClaims(true, { finalizeClose: true });
-  }
   await updateGameState({ immunity: gameState.immunity });
+  if (wasOpen && !scheduledOpen) {
+    await finalizeImmunityWindowTransactional({ finalizeClose: true, markClosed: true });
+  }
   await logAuditEvent('immunity.override_cleared', {
     previousOverride,
     scheduledOpen
@@ -6757,7 +6889,7 @@ async function modClearWindowOverride() {
 }
 
 async function repairImmunityState() {
-  await recomputeImmunityFromClaims(true, { force: true });
+  await finalizeImmunityWindowTransactional({ finalizeClose: false });
   await logAuditEvent('immunity.repaired', {
     slots: gameState.immunity.slots,
     winners: gameState.immunity.immunePlayers,
