@@ -156,6 +156,7 @@ function getDefaultState() {
   return {
     gameStarted: false, gameStartedAt: null, gamePaused: false, gamePausedAt: null,
     gameEnded: false, gameEndedAt: null, gameEndResult: null, killChainOrder: [],
+    analyticsDisplayStartAt: null,
     players: [], mods: [], killLog: [], auditLog: [], pendingCodes: {},
     settings: { immunityEnabled: true, ghostEnabled: true },
     immunity: { start: null, end: null, immunePlayers: [] },
@@ -245,6 +246,12 @@ function formatDurationMs(ms, compact) {
 
 function getGameStartMs() {
   if (!gameState) return null;
+  // Display-only override: lets a mod set what the analytics "GAME ELAPSED"
+  // clock counts from, independent of the real gameStartedAt used by game logic.
+  if (gameState.analyticsDisplayStartAt) {
+    const override = new Date(gameState.analyticsDisplayStartAt).getTime();
+    if (!Number.isNaN(override)) return override;
+  }
   if (gameState.gameStartedAt) {
     const t = new Date(gameState.gameStartedAt).getTime();
     if (!Number.isNaN(t)) return t;
@@ -292,7 +299,11 @@ function updateAnalyticsLivePanel() {
 
   if (elapsedEl) {
     if (gameState.gameStarted && startMs) {
-      elapsedEl.textContent = formatDurationMs(nowMs - startMs, false);
+      // Freeze the clock at the moment the game ended instead of letting it
+      // keep counting up against the live clock.
+      const endMs = (gameState.gameEnded && gameState.gameEndedAt) ? new Date(gameState.gameEndedAt).getTime() : NaN;
+      const refMs = Number.isFinite(endMs) ? endMs : nowMs;
+      elapsedEl.textContent = formatDurationMs(refMs - startMs, false);
     } else if (gameState.gameStarted) {
       elapsedEl.textContent = '0s';
     } else {
