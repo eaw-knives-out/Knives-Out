@@ -1455,8 +1455,14 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <button class="btn btn-outline btn-sm" onclick="modClearImmunity()">CLEAR WINNERS ONLY</button>
           </div>
           <div class="text-dim mt8" style="font-size:10px;line-height:1.6;">
-            <strong style="color:var(--cream2)">ROUND RESET</strong> — clears queue + winners + override before each day's window.
-            Run this first, then open the window.
+            <strong style="color:var(--cream2)">ROUND RESET</strong> — full wipe: revokes anyone currently immune, closes the window, and
+            clears the claim queue, all manual grants/revokes, and the override. Run this before each day's window so nothing from an
+            earlier round can carry over.<br>
+            <strong style="color:var(--cream2)">CLEAR CLAIM QUEUE</strong> — deletes every claim (winners and non-winners alike) but leaves
+            the current immune list untouched. Use this to wipe a messy queue without touching who's currently protected.<br>
+            <strong style="color:var(--cream2)">CLEAR WINNERS ONLY</strong> — revokes the current immune list but keeps the claim queue
+            on record. This now sticks — it will not silently reappear a few seconds later. To bring winners back from the same queue,
+            use REPAIR STATE.
           </div>
         </div>
       </div>
@@ -1474,9 +1480,11 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <div class="text-dim" style="font-size:10px;line-height:1.8;background:var(--ink3);border:1px solid var(--seam);border-left:3px solid var(--seam2);padding:10px 12px;margin-top:4px;">
           <strong style="color:var(--cream2);display:block;margin-bottom:4px;">How immunity is awarded</strong>
           Only the first <strong style="color:var(--blade);">N</strong> players to claim during this round's window win immunity — determined purely by who was fastest.
-          The queue is a timing record for this round only. If a winner's immunity is later consumed or revoked,
-          the slot does <em>not</em> pass down to the next person in queue — the round is over and no new slots open.
-          Run <strong>Round Reset</strong> before the next day's window to start fresh.
+          The queue is a timing record and isn't automatically cleared between rounds — run <strong>Round Reset</strong> before the next
+          day's window so an old claim can't resurface later (e.g. if that player is revived or comes back via the ghost mechanic).
+          If a winner's immunity is later consumed or revoked, the slot does <em>not</em> pass down to the next person in queue —
+          the round is over and no new slots open. A mod's manual GRANT (Immune Now tab) is the one exception: it always adds the
+          player on top of the queue's winners, regardless of how many slots are already filled.
         </div>
       </div>
 
@@ -1496,6 +1504,12 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <button class="btn btn-alive" onclick="grantImmunity()"  style="flex:1;">GRANT</button>
             <button class="btn btn-blood" onclick="revokeImmunity()" style="flex:1;">REVOKE</button>
           </div>
+        </div>
+        <div class="text-dim mb8" style="font-size:10px;line-height:1.6;">
+          <strong style="color:var(--cream2)">GRANT</strong> — unconditionally makes the selected player immune, on top of anyone who
+          already won a slot from the queue. It's an override, not a queue entry, so it always sticks even if the round's slots are full.<br>
+          <strong style="color:var(--cream2)">REVOKE</strong> — unconditionally strips immunity from the selected player and blocks them
+          from regaining it this round (even via REPAIR STATE), regardless of how they got it.
         </div>
         <div id="immunity-action-feedback" class="alert alert-gold hidden" role="status" style="line-height:1.5;"></div>
       </div>
@@ -1548,13 +1562,21 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <hr class="divider">
         <div class="card-title">HOW THIS WORKS</div>
         <div class="text-dim" style="line-height:1.9;font-size:11px;">
-          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">SAVE</strong> — sets slots, window start, immunity duration, and the missed-window message. Window always 5 min.</p>
-          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">Immunity duration</strong> — counted from the moment the claim window closes (manually or on schedule).</p>
-          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">ROUND RESET</strong> (Window tab) — run before each day's window. Clears queue, winners, and overrides.</p>
-          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">OPEN / CLOSE</strong> — manual override. CLOSE finalizes top-N winners from the queue.</p>
-          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">REPAIR</strong> — recomputes winners from queue if state looks wrong.</p>
-          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">TRIM NON-WINNERS</strong> — removes non-winner entries, keeping only winners' claims in the queue.</p>
-          <p style="margin:0;"><strong style="color:var(--cream2)">GRANT / REVOKE</strong> (Immune now tab) — manual single-player override. Immune Now shows live countdowns.</p>
+          <p style="margin:0 0 10px;"><strong style="color:var(--cream2)">Window tab</strong></p>
+          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">OPEN WINDOW</strong> — force the claim window open right now, regardless of the schedule. Players can submit claims immediately.</p>
+          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">CLOSE WINDOW</strong> — force the claim window shut and finalize it: the top-N claimants (by claim time, minus anyone revoked/consumed) become immune. Also suppresses the "opens soon" / "you missed it" messages players would otherwise see based on the raw schedule.</p>
+          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">CLEAR OVERRIDE</strong> — drop the manual OPEN/CLOSE override and go back to following the scheduled start/end time.</p>
+          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">REPAIR STATE</strong> — recompute the immune list from scratch off the current claim queue (top-N, respecting revokes/consumes) plus any manual grants. Use this any time the immune list looks out of sync with the queue.</p>
+          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">TRIM NON-WINNERS</strong> — deletes every claim that did <em>not</em> win a slot, keeping only winners' claims in the queue. Doesn't touch who's currently immune.</p>
+          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">EXPORT LIST</strong> — download the current claim queue for your own records.</p>
+          <p style="margin:0 0 10px;"><strong style="color:var(--cream2)">ROUND RESET</strong> ⚠ — full wipe: revokes everyone currently immune, closes the window, and clears the claim queue, all manual grants/revokes, and the override. Run this before each day's window so nothing carries over from the round before.</p>
+          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">CLEAR CLAIM QUEUE</strong> ⚠ — deletes every claim (winners and non-winners) but leaves the current immune list untouched.</p>
+          <p style="margin:0 0 10px;"><strong style="color:var(--cream2)">CLEAR WINNERS ONLY</strong> ⚠ — revokes the current immune list but keeps the claim queue on record so REPAIR STATE can recompute it later. This sticks permanently now — it won't silently come back on its own after a few seconds.</p>
+          <p style="margin:0 0 10px;"><strong style="color:var(--cream2)">Claim queue tab</strong> — read-only view of who's claimed, in order, with winner/used/revoked status per entry.</p>
+          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">Immune now tab · GRANT</strong> — unconditionally grants immunity to one player, on top of the queue's winners. Always succeeds, even if all slots are already filled.</p>
+          <p style="margin:0 0 10px;"><strong style="color:var(--cream2)">Immune now tab · REVOKE</strong> — unconditionally strips immunity from one player and blocks them from regaining it this round by any means (claim, GRANT, or REPAIR STATE), until Round Reset.</p>
+          <p style="margin:0 0 4px;"><strong style="color:var(--cream2)">SAVE CONFIGURATION</strong> — sets slots, window start, immunity duration, and the missed-window message. Window always runs 5 minutes.</p>
+          <p style="margin:0;"><strong style="color:var(--cream2)">Immunity duration</strong> — counted from the moment the claim window closes (manually or on schedule), not from when a player individually wins or is granted immunity.</p>
         </div>
       </div>
 
@@ -2385,6 +2407,8 @@ function normalizeState(raw) {
     grants: rawImm.grants || {},
     revokedPlayers: rawImm.revokedPlayers || {},
     consumedByAttack: rawImm.consumedByAttack || {},
+    manualGrants: rawImm.manualGrants || {},
+    lastManualClearAt: rawImm.lastManualClearAt || null,
     lastOpenedAt: rawImm.lastOpenedAt || null,
     lastClosedAt: rawImm.lastClosedAt || null,
     lastFinalizedAt: rawImm.lastFinalizedAt || null,
@@ -2541,6 +2565,12 @@ async function reconcileImmunityExpiry() {
         imm.immunePlayers = imm.immunePlayers.filter(n => !immunityPlayerNameMatches(n, name));
         Object.keys(imm.claims).forEach(k => { if (immunityPlayerNameMatches(k, name)) delete imm.claims[k]; });
         delete imm.grants[name];
+        // Also drop a manual GRANT override on natural expiry — otherwise it
+        // would keep exempting this player from the slot cap forever, and a
+        // later recompute would hand immunity straight back with no new grant.
+        if (imm.manualGrants) {
+          Object.keys(imm.manualGrants).forEach(k => { if (immunityPlayerNameMatches(k, name)) delete imm.manualGrants[k]; });
+        }
       });
       imm.immune_players = imm.immunePlayers.slice(); // keep the legacy duplicate key in sync, same commit
 
@@ -2607,6 +2637,8 @@ function getDefaultState() {
       lastFinalizedAt: null,
       revokedPlayers: {},
       consumedByAttack: {},
+      manualGrants: {},
+      lastManualClearAt: null,
       durationHours: 23.5,
       missedMessage: DEFAULT_MISSED_WINDOW_MESSAGE
     },
@@ -2743,7 +2775,7 @@ const ARRAY_MERGE_FIELDS = {
 // by mod actions (grantImmunity, revokeImmunity, modCloseClaimWindow, etc.) while a
 // player's own claimImmunity() writes straight to its own /claims/{key} leaf — without
 // this, the mod's whole-object send could silently drop a claim that landed in between.
-const OBJECT_MERGE_FIELDS = ['immunity/claims', 'immunity/grants', 'immunity/revokedPlayers', 'immunity/consumedByAttack'];
+const OBJECT_MERGE_FIELDS = ['immunity/claims', 'immunity/grants', 'immunity/revokedPlayers', 'immunity/consumedByAttack', 'immunity/manualGrants'];
 
 async function updateGameState(updates) {
   if (!db) return;
@@ -2755,6 +2787,7 @@ async function updateGameState(updates) {
     // RTDB .update() merges — claims: {} does NOT remove /immunity/claims/{player} children
     const claimsEmpty = !imm.claims || (typeof imm.claims === 'object' && !Object.keys(imm.claims).length);
     const grantsEmpty = !imm.grants || (typeof imm.grants === 'object' && !Object.keys(imm.grants).length);
+    const manualGrantsEmpty = !imm.manualGrants || (typeof imm.manualGrants === 'object' && !Object.keys(imm.manualGrants).length);
     // FIX #4: Both removes must fully resolve before the .update() is sent.
     // Previously the removes were awaited but the payload was mutated after them —
     // if the update raced ahead of the remove (possible on slow connections), Firebase
@@ -2763,6 +2796,7 @@ async function updateGameState(updates) {
     const prereqs = [];
     if (claimsEmpty) prereqs.push(db.ref('/game/immunity/claims').remove());
     if (grantsEmpty) prereqs.push(db.ref('/game/immunity/grants').remove());
+    if (manualGrantsEmpty) prereqs.push(db.ref('/game/immunity/manualGrants').remove());
     if (prereqs.length) await Promise.all(prereqs);
     payload.immunity = {
       ...imm,
@@ -2773,6 +2807,7 @@ async function updateGameState(updates) {
     };
     if (claimsEmpty) delete payload.immunity.claims;
     if (grantsEmpty) delete payload.immunity.grants;
+    if (manualGrantsEmpty) delete payload.immunity.manualGrants;
   }
 
   // FIX (last-write-wins on whole-object nodes): 'ghost' and 'immunity' used to be
@@ -3024,6 +3059,13 @@ function isGrantExpired(playerName) {
 
 function isPlayerCurrentlyImmune(playerName) {
   if (!gameState?.settings?.immunityEnabled) return false;
+  // BUGFIX (defense-in-depth): a dead or ghost player can never be "currently"
+  // immune, full stop — regardless of what's left in immunePlayers/claims.
+  // This backstops the various elimination paths (normal kill, mod kill,
+  // RA-EL, ghost-kill-flips-to-alive) so a bookkeeping gap in any one of them
+  // can't let a killed player keep — or later regain — immunity.
+  const player = gameState?.players?.find(p => immunityPlayerNameMatches(p.name, playerName));
+  if (!player || player.status !== 'alive') return false;
   if (isImmunityConsumedByAttack(playerName)) return false;
   if (isImmunityManuallyRevoked(playerName)) return false;
   if (isGrantExpired(playerName)) return false;
@@ -3056,6 +3098,22 @@ function pickImmuneWinnersFromClaims(sorted, slots) {
     if (isImmunityManuallyRevoked(name) || isImmunityClaimConsumed(entry) || isImmunityConsumedByAttack(name)) continue;
     winners.push(name);
     if (winners.length >= cap) break;
+  }
+  // BUGFIX: manual grants (the mod's GRANT button) are an explicit override —
+  // they are added on top of, never instead of, the claims-based winners, and
+  // are never subject to the slot cap or claim-time ranking. Previously GRANT
+  // just inserted a claim stamped "now" and relied on this same top-N pick,
+  // so if `slots` other valid claimants already existed, the newly granted
+  // player's late timestamp always lost the ranking and they were silently
+  // never added — while the mod was still told "Immunity granted."
+  const manualGrants = gameState?.immunity?.manualGrants || {};
+  if (Object.keys(manualGrants).length) {
+    const eligible = getEligibleClaimants();
+    Object.keys(manualGrants).forEach(name => {
+      if (isImmunityManuallyRevoked(name) || isImmunityConsumedByAttack(name)) return;
+      if (!eligible.some(p => immunityPlayerNameMatches(p.name, name))) return; // dead/mod players never re-enter via a stale manual grant
+      if (!winners.some(w => immunityPlayerNameMatches(w, name))) winners.push(name);
+    });
   }
   return winners;
 }
@@ -3156,6 +3214,18 @@ async function recomputeImmunityFromClaims(persist = false, options = {}) {
 
 function immunityWinnersNeedCatchUpFinalize() {
   if (!gameState?.settings?.immunityEnabled || getEffectiveClaimWindowOpen()) return false;
+  // BUGFIX: this check exists for "window closed in DB but finalize never ran"
+  // (nobody online when it closed). It used to fire just as readily when a mod
+  // deliberately used CLEAR WINNERS ONLY — that action intentionally leaves
+  // claims in place ("recomputable" via REPAIR STATE), so the very next 2s
+  // poll would see current (empty) != expected (claims-derived) and silently
+  // restore the exact winners the mod just cleared. Respect an explicit clear
+  // that happened after the window's last close; a genuinely new window close
+  // (a newer lastClosedAt) or an explicit REPAIR STATE click (which calls
+  // recomputeImmunityFromClaims directly, bypassing this function) still work.
+  const clearedAt = gameState.immunity.lastManualClearAt ? new Date(gameState.immunity.lastManualClearAt).getTime() : 0;
+  const closedAt = gameState.immunity.lastClosedAt ? new Date(gameState.immunity.lastClosedAt).getTime() : 0;
+  if (clearedAt && clearedAt >= closedAt) return false;
   const sorted = getSortedClaimEntries();
   if (!sorted.length) return false;
   const slots = Math.max(0, parseInt(gameState.immunity.slots, 10) || 0);
@@ -3674,7 +3744,13 @@ function renderPlayerView(player) {
 
   if (isEligible) {
     const start = parseTimeToMinutes(gameState.immunity.start);
-    if (start !== null && !windowOpen) {
+    // BUGFIX: a mod-forced 'closed' override should suppress the "opens
+    // soon" / "you missed it" messaging entirely — both are derived purely
+    // from the raw schedule, so without this check players would still see
+    // a countdown or a "missed window" note for a window that was never
+    // actually going to open that day.
+    const overrideClosed = gameState.immunity.manualOverride === 'closed';
+    if (start !== null && !windowOpen && !overrideClosed) {
       let prepStart = start - 2;
       if (prepStart < 0) prepStart += 1440;
       const now = getCurrentMinutesOfDay();
@@ -4444,7 +4520,24 @@ function processKillCore(killerName, victimName) {
 
   killer.kills = (killer.kills || 0) + 1;
   killer.lastKill = victimName;
-  
+
+  // Strip immunity from the victim BEFORE flipping their status below.
+  // BUGFIX: this used to run afterward, as an inline duplicate of
+  // stripImmunityForEliminatedPlayer() that removed the victim from
+  // immunePlayers/grants but forgot to touch their claims entry. That left a
+  // still-"valid" (not consumed, not revoked) claim sitting in
+  // /immunity/claims for a dead player. If that player later became alive
+  // again — mod revive, or a ghost who lands a kill and flips back to
+  // 'alive' a few lines below — the next recompute (REPAIR STATE, a window
+  // close, or the periodic catch-up finalize) would see their old claim as
+  // legitimate and could hand immunity right back, or let it outrank a
+  // player who actually won the current round.
+  // Delegating to stripImmunityForEliminatedPlayer() fixes the claims gap
+  // and keeps this path and the mod/RA-EL elimination path doing the exact
+  // same cleanup. It must run here, before victim.status changes, because
+  // isPlayerCurrentlyImmune() requires status === 'alive'.
+  stripImmunityForEliminatedPlayer(victimName);
+
   if (isGhostKill) {
     const previousAssassin = gameState.players.find(p => p.target === victimName && p.status === 'alive');
     if (previousAssassin) {
@@ -4468,17 +4561,6 @@ function processKillCore(killerName, victimName) {
   if (killer.target === killer.name) killer.target = null;
   // Also clean up any other player whose target is now themselves
   gameState.players.forEach(p => { if (p.target && p.target === p.name) p.target = null; });
-
-  // Strip immunity from victim on death — dead players don't stay immune
-  if (isPlayerCurrentlyImmune(victimName)) {
-    removeFromImmunePlayersList(victimName);
-    const claimKey = resolveImmunityClaimKey(victimName);
-    if (gameState.immunity.grants) {
-      Object.keys(gameState.immunity.grants).forEach(k => {
-        if (immunityPlayerNameMatches(k, victimName)) delete gameState.immunity.grants[k];
-      });
-    }
-  }
 
   const killEntry = {
     killer: killerName,
@@ -6426,15 +6508,29 @@ async function grantImmunity() {
   }
   await db.ref(`/game/immunity/revokedPlayers/${claimKey}`).remove();
   await db.ref(`/game/immunity/consumedByAttack/${claimKey}`).remove();
-  const grantedAt = new Date().toISOString();
-  const expiresAt = getDefaultImmunityExpiresAt();
-  if (!gameState.immunity.grants) gameState.immunity.grants = {};
-  gameState.immunity.grants[name] = { grantedAt, expiresAt };
+
+  // BUGFIX: GRANT used to only insert a "now"-stamped claim and recompute the
+  // top-N — if `slots` other valid claimants already existed, this player's
+  // late timestamp always lost that ranking and they were never actually
+  // added, even though the mod saw "Immunity granted." Recording them in
+  // manualGrants makes this a true override: pickImmuneWinnersFromClaims()
+  // always includes anyone here on top of the ranked winners, regardless of
+  // the slot cap.
+  if (!gameState.immunity.manualGrants) gameState.immunity.manualGrants = {};
+  gameState.immunity.manualGrants[claimKey] = true;
+
   await recomputeImmunityFromClaims(true, { force: true });
+
+  if (!gameState.immunity.immunePlayers.some(n => immunityPlayerNameMatches(n, name))) {
+    // Should not happen (manual grants are unconditional), but don't lie to the mod if it does —
+    // e.g. the player is no longer alive/eligible.
+    await afterImmunityAction('Grant failed', `${name} is not eligible for immunity right now (not alive, or already blocked).`);
+    return;
+  }
+  const expiresAt = gameState.immunity.grants?.[name]?.expiresAt || getDefaultImmunityExpiresAt();
   await logAuditEvent('immunity.granted', {
     player: name,
     source: 'mod',
-    grantedAt,
     expiresAt,
     immunePlayers: gameState.immunity.immunePlayers
   });
@@ -6451,9 +6547,19 @@ async function persistImmunityRevoke(name) {
       if (immunityPlayerNameMatches(k, name)) delete gameState.immunity.grants[k];
     });
   }
+  // Also clear any manual GRANT override — revokedPlayers already blocks them
+  // via isImmunityManuallyRevoked(), but tidy up manualGrants too so a later
+  // REPAIR/finalize doesn't carry a contradictory "grant + revoke" record.
+  let manualGrantCleared = false;
+  if (gameState.immunity.manualGrants) {
+    Object.keys(gameState.immunity.manualGrants).forEach(k => {
+      if (immunityPlayerNameMatches(k, name)) { delete gameState.immunity.manualGrants[k]; manualGrantCleared = true; }
+    });
+  }
   await persistImmunityListToFirebase();
   await db.ref(`/game/immunity/grants/${claimKey}`).remove();
   await db.ref(`/game/immunity/revokedPlayers/${claimKey}`).set(true);
+  if (manualGrantCleared) await db.ref(`/game/immunity/manualGrants/${claimKey}`).remove();
 }
 
 async function persistImmunityConsumedByAttack(name, attacker) {
@@ -6467,6 +6573,11 @@ async function persistImmunityConsumedByAttack(name, attacker) {
   if (gameState.immunity.grants) {
     Object.keys(gameState.immunity.grants).forEach(k => {
       if (immunityPlayerNameMatches(k, name)) delete gameState.immunity.grants[k];
+    });
+  }
+  if (gameState.immunity.manualGrants) {
+    Object.keys(gameState.immunity.manualGrants).forEach(k => {
+      if (immunityPlayerNameMatches(k, name)) delete gameState.immunity.manualGrants[k];
     });
   }
   if (gameState.immunity.claims[claimKey]) {
@@ -6611,10 +6722,16 @@ function modExportClaimList() {
 }
 
 async function modClearImmunity() {
-  if (!confirm('Clear current winners only? Claims remain and can be recomputed.')) return;
+  if (!confirm('Clear current winners only? Claims remain and can be recomputed via REPAIR STATE.')) return;
   const previousImmune = [...(gameState.immunity.immunePlayers || [])];
   gameState.immunity.immunePlayers = [];
   gameState.immunity.grants = {};
+  // BUGFIX: this timestamp is what stops the periodic catch-up sync from
+  // silently restoring these exact winners a couple seconds later (see
+  // immunityWinnersNeedCatchUpFinalize). Manual grants aren't cleared here —
+  // REPAIR STATE is still the explicit way to recompute everything, clears
+  // and grants included.
+  gameState.immunity.lastManualClearAt = new Date().toISOString();
   await updateGameState({ immunity: gameState.immunity });
   await logAuditEvent('immunity.list_cleared', { previousImmune });
   await afterImmunityAction('Winners cleared', previousImmune.length ? `Removed: ${previousImmune.join(', ')}.` : 'No one was immune.');
@@ -6683,12 +6800,15 @@ async function modResetImmunityRound() {
   gameState.immunity.grants = {};
   gameState.immunity.revokedPlayers = {};
   gameState.immunity.consumedByAttack = {};
+  gameState.immunity.manualGrants = {};
+  gameState.immunity.lastManualClearAt = null;
   gameState.immunity.lastComputedAt = new Date().toISOString();
   gameState.immunity.lastOpenedAt = null;
   gameState.immunity.lastClosedAt = null;
   gameState.immunity.lastFinalizedAt = null;
   await db.ref('/game/immunity/revokedPlayers').remove();
   await db.ref('/game/immunity/consumedByAttack').remove();
+  await db.ref('/game/immunity/manualGrants').remove();
   await persistImmunityListToFirebase();
   await updateGameState({ immunity: gameState.immunity });
   await logAuditEvent('immunity.round_reset', {
@@ -6955,6 +7075,14 @@ function stripImmunityForEliminatedPlayer(name) {
       if (immunityPlayerNameMatches(k, name)) delete gameState.immunity.grants[k];
     });
   }
+  // Also clear a manual GRANT override for this player — otherwise a future
+  // recompute (REPAIR STATE, window close, catch-up finalize) would treat
+  // them as an exempt manual grant and hand immunity straight back.
+  if (gameState.immunity.manualGrants) {
+    Object.keys(gameState.immunity.manualGrants).forEach(k => {
+      if (immunityPlayerNameMatches(k, name)) delete gameState.immunity.manualGrants[k];
+    });
+  }
 }
 
 function applySingleModElimination(name, { reason = null } = {}) {
@@ -6966,13 +7094,15 @@ function applySingleModElimination(name, { reason = null } = {}) {
   const victimPrevTarget = player.target || null;
   const victimPrevGhostTarget = player.ghostTarget || null;
   if (killer) killer.target = player.target;
+  // Strip immunity BEFORE the status flip below — isPlayerCurrentlyImmune()
+  // requires status === 'alive', so this must run while that's still true.
+  stripImmunityForEliminatedPlayer(name);
   if (player.status === 'ghost') {
     eliminateGhostPlayer(player, { toStatus: 'dead' });
   } else {
     player.status = 'dead';
   }
   gameState.players.forEach(p => { if (p.target && p.target === p.name) p.target = null; });
-  stripImmunityForEliminatedPlayer(name);
   return {
     killer: 'MOD',
     victim: name,
@@ -7286,7 +7416,13 @@ async function confirmRandomElimination() {
     });
     gameState.killLog.push(...killEntries);
 
-    await updateGameState({ players: gameState.players, killLog: gameState.killLog, ghost: gameState.ghost });
+    // BUGFIX: 'immunity' must be included here. applySingleModElimination()
+    // (via stripImmunityForEliminatedPlayer) already stripped immunity from
+    // any eliminated player in local gameState — but without persisting it,
+    // the next '/game' snapshot from the server (which still has the old
+    // /immunity node) silently overwrote that local fix, resurrecting the
+    // eliminated player's immunity for every connected client.
+    await updateGameState({ players: gameState.players, killLog: gameState.killLog, ghost: gameState.ghost, immunity: gameState.immunity });
     await reconcileGhostTargetsDead();
     await pushNotification('kill', `RA-EL: ${killEntries.length} eliminated`, namesList, 'mod');
 
@@ -7303,7 +7439,9 @@ async function modKillPlayer(name) {
   const entry = applySingleModElimination(name);
   if (!entry) return;
   gameState.killLog.push(entry);
-  await updateGameState({ players: gameState.players, killLog: gameState.killLog, ghost: gameState.ghost });
+  // BUGFIX: same issue as confirmRandomElimination() — the immunity strip
+  // this triggers only sticks if it's actually sent to Firebase.
+  await updateGameState({ players: gameState.players, killLog: gameState.killLog, ghost: gameState.ghost, immunity: gameState.immunity });
   await reconcileGhostTargetsDead();
   await logAuditEvent('player.killed_by_mod', {
     victim: name,
