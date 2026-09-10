@@ -1480,11 +1480,13 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <div class="text-dim" style="font-size:10px;line-height:1.8;background:var(--ink3);border:1px solid var(--seam);border-left:3px solid var(--seam2);padding:10px 12px;margin-top:4px;">
           <strong style="color:var(--cream2);display:block;margin-bottom:4px;">How immunity is awarded</strong>
           Only the first <strong style="color:var(--blade);">N</strong> players to claim during this round's window win immunity — determined purely by who was fastest.
-          The queue is a timing record and isn't automatically cleared between rounds — run <strong>Round Reset</strong> before the next
-          day's window so an old claim can't resurface later (e.g. if that player is revived or comes back via the ghost mechanic).
-          If a winner's immunity is later consumed or revoked, the slot does <em>not</em> pass down to the next person in queue —
-          the round is over and no new slots open. A mod's manual GRANT (Immune Now tab) is the one exception: it always adds the
-          player on top of the queue's winners, regardless of how many slots are already filled.
+          That winner set is locked in the moment the window first closes. If a winner's immunity is later consumed, revoked, or they die,
+          the slot stays empty for the rest of the round — it is <em>never</em> passed down to the next person in the queue, even via
+          REPAIR STATE. Everyone else's claim stays in the queue below purely as a timing record.
+          The queue itself isn't automatically cleared between rounds — run <strong>Round Reset</strong> before the next day's window so an
+          old claim can't resurface later (e.g. if that player is revived or comes back via the ghost mechanic), and to release the lock
+          for a new round. A mod's manual GRANT (Immune Now tab) is the one exception to the lock: it always adds the player on top of
+          the round's winners, regardless of how many slots are already filled.
         </div>
       </div>
 
@@ -2409,6 +2411,7 @@ function normalizeState(raw) {
     consumedByAttack: rawImm.consumedByAttack || {},
     manualGrants: rawImm.manualGrants || {},
     lastManualClearAt: rawImm.lastManualClearAt || null,
+    lockedWinners: Array.isArray(rawImm.lockedWinners) ? rawImm.lockedWinners : null,
     lastOpenedAt: rawImm.lastOpenedAt || null,
     lastClosedAt: rawImm.lastClosedAt || null,
     lastFinalizedAt: rawImm.lastFinalizedAt || null,
@@ -2639,6 +2642,7 @@ function getDefaultState() {
       consumedByAttack: {},
       manualGrants: {},
       lastManualClearAt: null,
+      lockedWinners: null,
       durationHours: 23.5,
       missedMessage: DEFAULT_MISSED_WINDOW_MESSAGE
     },
@@ -3092,9 +3096,21 @@ async function persistImmunityListToFirebase() {
 }
 
 function pickImmuneWinnersFromClaims(sorted, slots) {
+  // BUGFIX: once a round has a locked winner set (frozen at the window's first
+  // real close — see finalizeImmunityWindowTransactional), the ranked pool is
+  // restricted to just those names. This is what stops immunity from being
+  // "passed on": if one of the original winners is later consumed, revoked,
+  // or dies, their slot simply stays empty for the rest of the round instead
+  // of the next-ranked claimant silently rising into the top-N on the next
+  // recompute (REPAIR STATE, the periodic catch-up, etc.). Before the round
+  // is ever closed, lockedWinners is null and ranking is free, same as before.
+  const lockedWinners = gameState?.immunity?.lockedWinners;
+  const pool = Array.isArray(lockedWinners)
+    ? sorted.filter(([name]) => lockedWinners.some(w => immunityPlayerNameMatches(w, name)))
+    : sorted;
   const winners = [];
   const cap = Math.max(0, parseInt(slots, 10) || 0);
-  for (const [name, entry] of sorted) {
+  for (const [name, entry] of pool) {
     if (isImmunityManuallyRevoked(name) || isImmunityClaimConsumed(entry) || isImmunityConsumedByAttack(name)) continue;
     winners.push(name);
     if (winners.length >= cap) break;
@@ -3261,6 +3277,8 @@ async function finalizeImmunityWindowTransactional(options = {}) {
       if (!imm.lastClosedAt) imm.lastClosedAt = new Date().toISOString();
     }
 
+    imm.lockedWinners = Array.isArray(imm.lockedWinners) ? imm.lockedWinners : null;
+
     const eligible = raw.players.filter(p => p.status === 'alive' && !raw.mods.some(m => matches(m, p.name)));
     const isRevoked = name => Object.keys(imm.revokedPlayers).some(k => matches(k, name));
     const isConsumedByAttack = name => Object.keys(imm.consumedByAttack).some(k => matches(k, name));
@@ -3275,19 +3293,41 @@ async function finalizeImmunityWindowTransactional(options = {}) {
       })
       .sort((a, b) => claimTime(a[1]) - claimTime(b[1]));
 
+    // BUGFIX ("immunity being passed on"): once a round has a locked winner
+    // set (frozen the first time the window actually closes), restrict the
+    // ranked pool to exactly those names for every later recompute. Without
+    // this, consuming/revoking/killing one of the original winners made their
+    // claim invalid, which meant the NEXT-ranked claimant rose straight into
+    // the top-N on the very next recompute (REPAIR STATE, the periodic
+    // catch-up, even just re-closing) — silently promoting a "3rd place"
+    // claimant into a vacated slot instead of leaving it empty. All claims
+    // (winners and non-winners alike) stay in /immunity/claims untouched for
+    // the record — this only limits who can ever be RE-PROMOTED from them.
+    const pool = Array.isArray(imm.lockedWinners)
+      ? sorted.filter(([name]) => imm.lockedWinners.some(w => matches(w, name)))
+      : sorted;
+
     const cap = Math.max(0, parseInt(imm.slots, 10) || 0);
     const winners = [];
-    for (const [name] of sorted) {
+    for (const [name] of pool) {
       if (isRevoked(name)) continue;
       winners.push(name);
       if (winners.length >= cap) break;
     }
-    // Manual grants are an explicit override — always included, never capped.
+    // Manual grants are an explicit override — always included, never capped,
+    // and never subject to the lock (a mod can still GRANT anyone at any time).
     Object.keys(imm.manualGrants).forEach(name => {
       if (isRevoked(name) || isConsumedByAttack(name)) return;
       if (!eligible.some(p => matches(p.name, name))) return;
       if (!winners.some(w => matches(w, name))) winners.push(name);
     });
+
+    // The FIRST time a round is genuinely finalized (finalizeClose, no lock
+    // yet), freeze the just-computed set as the round's permanent winner
+    // list, in the same commit as the grants/immunePlayers write below.
+    if (finalizeClose && !Array.isArray(imm.lockedWinners)) {
+      imm.lockedWinners = winners.slice();
+    }
 
     // Everything below reads only `imm`/`raw` from THIS transaction attempt —
     // never the outer client-side gameState — so every retry (by this client
@@ -6775,6 +6815,12 @@ async function modOpenClaimWindow() {
   gameState.immunity.manualOverride = 'open';
   gameState.immunity.claimWindowOpen = true;
   gameState.immunity.lastOpenedAt = new Date().toISOString();
+  // A fresh OPEN starts a new round of claiming — release any previous
+  // round's winner lock so this round's close can pick fresh, unrestricted.
+  // (Claims from a prior round that was never reset can still count toward
+  // this one — see ROUND RESET's note in the panel — but who's allowed to
+  // win is no longer artificially pinned to the last round's outcome.)
+  gameState.immunity.lockedWinners = null;
   await updateGameState({ immunity: gameState.immunity });
   await logAuditEvent('immunity.window_opened', {
     mode: 'manual_override',
@@ -6934,6 +6980,7 @@ async function modResetImmunityRound() {
   gameState.immunity.consumedByAttack = {};
   gameState.immunity.manualGrants = {};
   gameState.immunity.lastManualClearAt = null;
+  gameState.immunity.lockedWinners = null;
   gameState.immunity.lastComputedAt = new Date().toISOString();
   gameState.immunity.lastOpenedAt = null;
   gameState.immunity.lastClosedAt = null;
