@@ -4130,8 +4130,25 @@ function renderVotingPanel(player) {
   
   document.getElementById('player-already-voted').classList.add('hidden');
   list.innerHTML = candidates.map(c => `
-    <button class="btn btn-ghost-btn" onclick="castVote('${escapeJsString(c.name)}')">${c.name}</button>
+    <button class="btn btn-ghost-btn" onclick="openVoteConfirmModal('${escapeJsString(c.name)}', '${escapeJsString(title)}')">${c.name}</button>
   `).join('');
+}
+
+function openVoteConfirmModal(targetName, voteTitle) {
+  document.getElementById('vote-confirm-name').textContent = targetName;
+  document.getElementById('vote-confirm-modal-title').textContent = voteTitle || 'Confirm vote';
+  document.getElementById('vote-confirm-modal').dataset.target = targetName;
+  document.getElementById('vote-confirm-modal').classList.add('open');
+}
+
+function closeVoteConfirmModal() {
+  document.getElementById('vote-confirm-modal').classList.remove('open');
+}
+
+async function confirmVoteFromModal() {
+  const targetName = document.getElementById('vote-confirm-modal').dataset.target;
+  closeVoteConfirmModal();
+  if (targetName) await castVote(targetName);
 }
 
 async function castVote(targetName) {
@@ -8362,6 +8379,17 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="btn btn-outline btn-sm" id="game-start-preview-back">BACK</button>
         <button class="btn btn-blade btn-sm" onclick="commitStartGame()">CONFIRM &amp; START</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="vote-confirm-modal" class="game-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="vote-confirm-modal-title">
+  <div class="game-modal">
+    <div class="game-modal-title" id="vote-confirm-modal-title">Confirm vote</div>
+    <p class="text-dim mb16" style="line-height:1.6;font-size:11px;">Vote for <strong id="vote-confirm-name" style="color:var(--ghost2);"></strong>? This can't be changed once submitted.</p>
+    <div class="flex-btn-group">
+      <button class="btn btn-outline btn-sm" onclick="closeVoteConfirmModal()">CANCEL</button>
+      <button class="btn btn-ghost-btn btn-sm" onclick="confirmVoteFromModal()">CONFIRM VOTE</button>
     </div>
   </div>
 </div>
